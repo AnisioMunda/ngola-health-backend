@@ -1,0 +1,120 @@
+# ============================================================
+# Ngola Health — configuração base
+# Valores sensíveis vêm do ficheiro .env (raiz do backend) ou de
+# variáveis de ambiente. Ver .env.example.
+# ============================================================
+
+spring:
+  application:
+    name: ngolahealth-backend
+  config:
+    # O .env é procurado na pasta de execução: backend/ (./mvnw, terminal) ou a raiz do
+    # workspace (botão Run do VS Code). O primeiro encontrado define os valores.
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:backend/.env[.properties]
+  autoconfigure:
+    # Autenticação própria (JWT); evita o utilizador em memória com password gerada.
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+  profiles:
+    default: dev
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:ngolahealth}?serverTimezone=UTC&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      pool-name: NgolaHealthPool
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 20000
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      # O esquema é gerido exclusivamente pelo Liquibase.
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        # UUIDs guardados como CHAR(36): legíveis no cliente mysql.
+        type:
+          preferred_uuid_jdbc_type: CHAR
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+
+  web:
+    error:
+      include-message: never
+      include-stacktrace: never
+      include-exception: false
+
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 25MB
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+app:
+  base-url: ${APP_BASE_URL:http://localhost:4200}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+springdoc:
+  api-docs:
+    enabled: false
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: false
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+
+logging:
+  level:
+    com.ngolahealth: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
+
+---
+# Perfil de desenvolvimento local (activo por omissão)
+spring:
+  config:
+    activate:
+      on-profile: dev
+  liquibase:
+    contexts: dev
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+logging:
+  level:
+    com.ngolahealth: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  liquibase:
+    contexts: prod
