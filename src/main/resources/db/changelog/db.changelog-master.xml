@@ -10,4 +10,7 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
     https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
+    <!-- Módulo 1: Hospitais -->
+    <include file="changes/hospitals/001-create-hospitals.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

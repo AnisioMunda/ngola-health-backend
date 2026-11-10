@@ -4,6 +4,7 @@ import jakarta.validation.ConstraintViolationException;
 import java.util.Map;
 import java.util.TreeMap;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.method.ParameterErrors;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -63,6 +66,34 @@ public class GlobalExceptionHandler {
         problem(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Um ou mais parâmetros são inválidos.");
     problem.setProperty("errors", errors);
     return problem;
+  }
+
+  /** Validação de parâmetros do método (ex.: {@code @Min} num {@code @RequestParam}). */
+  @ExceptionHandler(HandlerMethodValidationException.class)
+  public ProblemDetail handleMethodValidation(HandlerMethodValidationException ex) {
+    Map<String, String> errors = new TreeMap<>();
+    ex.getParameterValidationResults()
+        .forEach(
+            result -> {
+              if (result instanceof ParameterErrors parameterErrors) {
+                parameterErrors
+                    .getFieldErrors()
+                    .forEach(e -> errors.putIfAbsent(e.getField(), messageOf(e)));
+              } else {
+                String name = result.getMethodParameter().getParameterName();
+                result
+                    .getResolvableErrors()
+                    .forEach(e -> errors.putIfAbsent(name != null ? name : "?", messageOf(e)));
+              }
+            });
+    var problem =
+        problem(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Um ou mais parâmetros são inválidos.");
+    problem.setProperty("errors", errors);
+    return problem;
+  }
+
+  private static String messageOf(MessageSourceResolvable error) {
+    return error.getDefaultMessage() != null ? error.getDefaultMessage() : "Valor inválido.";
   }
 
   @ExceptionHandler({
