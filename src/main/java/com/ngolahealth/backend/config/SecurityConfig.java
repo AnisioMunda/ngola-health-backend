@@ -1,11 +1,14 @@
 package com.ngolahealth.backend.config;
 
 import com.ngolahealth.backend.config.properties.AppProperties;
+import com.ngolahealth.backend.security.PasswordChangeRequiredFilter;
 import com.ngolahealth.backend.security.ProblemJsonSecurityHandler;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -13,6 +16,8 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -29,7 +34,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
   /** Endpoints acessíveis sem autenticação. */
-  static final String[] PUBLIC_ENDPOINTS = {"/actuator/health", "/actuator/info", "/error"};
+  static final String[] PUBLIC_ENDPOINTS = {
+    "/actuator/health", "/actuator/info", "/error", "/auth/login", "/auth/refresh", "/auth/logout"
+  };
 
   /** Documentação da API; só fica activa no perfil dev (ver application.yml). */
   static final String[] API_DOCS_ENDPOINTS = {
@@ -38,6 +45,7 @@ public class SecurityConfig {
 
   private final AppProperties appProperties;
   private final ProblemJsonSecurityHandler problemJsonSecurityHandler;
+  private final Converter<Jwt, AbstractAuthenticationToken> sessionAuthenticationConverter;
 
   @Bean
   SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -55,6 +63,16 @@ public class SecurityConfig {
                     .permitAll()
                     .anyRequest()
                     .authenticated())
+        // Token de acesso JWT; a sessão e o utilizador são verificados na base de dados.
+        .oauth2ResourceServer(
+            oauth ->
+                oauth
+                    .jwt(jwt -> jwt.jwtAuthenticationConverter(sessionAuthenticationConverter))
+                    .authenticationEntryPoint(problemJsonSecurityHandler)
+                    .accessDeniedHandler(problemJsonSecurityHandler))
+        .addFilterAfter(
+            new PasswordChangeRequiredFilter(problemJsonSecurityHandler),
+            BearerTokenAuthenticationFilter.class)
         .exceptionHandling(
             ex ->
                 ex.authenticationEntryPoint(problemJsonSecurityHandler)

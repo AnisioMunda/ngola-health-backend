@@ -66,6 +66,15 @@ server:
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:4200}
+  auth:
+    # Segredo HS256 em Base64 (>= 256 bits). Gerar com: openssl rand -base64 32
+    jwt-secret: ${JWT_SECRET:}
+    issuer: ngolahealth
+    access-token-ttl: 15m
+    # Validade do refresh token; renova-se a cada utilização (sessão deslizante).
+    refresh-token-ttl: 12h
+    max-failed-attempts: 5
+    lock-duration: 15m
 
 management:
   endpoints:
@@ -106,6 +115,11 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+
+app:
+  dev:
+    # Senha inicial dos utilizadores de demonstração (platform-admin, admin.hcl). Vazio = não criar.
+    admin-password: ${DEV_ADMIN_PASSWORD:}
 
 logging:
   level:

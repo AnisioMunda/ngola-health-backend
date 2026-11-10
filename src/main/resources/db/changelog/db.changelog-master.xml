@@ -13,4 +13,7 @@
     <!-- Módulo 1: Hospitais -->
     <include file="changes/hospitals/001-create-hospitals.sql" relativeToChangelogFile="true"/>
 
+    <!-- Módulo 2: Utilizadores e autenticação -->
+    <include file="changes/users/001-create-users-and-sessions.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

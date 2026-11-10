@@ -8,9 +8,13 @@ import com.ngolahealth.backend.modules.hospitals.api.HospitalResponse;
 import com.ngolahealth.backend.modules.hospitals.domain.Hospital;
 import com.ngolahealth.backend.modules.hospitals.domain.HospitalDetails;
 import com.ngolahealth.backend.modules.hospitals.domain.HospitalRepository;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -42,6 +46,22 @@ public class HospitalService {
     var pageable = PageRequest.of(page, size, Sort.by("name").ascending().and(Sort.by("code")));
     return PageResponse.of(
         repository.search(likePattern(search), active, pageable), HospitalResponse::from);
+  }
+
+  /** Resumo para outros módulos (ex.: validar o hospital de um utilizador). */
+  @Transactional(readOnly = true)
+  public Optional<HospitalSummary> findSummary(UUID id) {
+    return repository.findById(id).map(HospitalSummary::from);
+  }
+
+  /** Nomes dos hospitais indicados, para enriquecer listagens de outros módulos. */
+  @Transactional(readOnly = true)
+  public Map<UUID, String> findNames(Collection<UUID> ids) {
+    if (ids.isEmpty()) {
+      return Map.of();
+    }
+    return repository.findAllById(ids).stream()
+        .collect(Collectors.toMap(Hospital::getId, Hospital::getName));
   }
 
   @Transactional(readOnly = true)

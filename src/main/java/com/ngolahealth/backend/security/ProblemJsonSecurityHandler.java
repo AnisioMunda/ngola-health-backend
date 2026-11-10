@@ -21,14 +21,22 @@ import org.springframework.stereotype.Component;
 public class ProblemJsonSecurityHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
 
   private static final String UNAUTHORIZED_BODY =
-      """
-      {"type":"about:blank","title":"Não autenticado","status":401,\
-      "detail":"É necessário iniciar sessão para aceder a este recurso.","code":"UNAUTHENTICATED"}""";
+      body(
+          401,
+          "Não autenticado",
+          "É necessário iniciar sessão para aceder a este recurso.",
+          "UNAUTHENTICATED");
 
   private static final String FORBIDDEN_BODY =
-      """
-      {"type":"about:blank","title":"Acesso proibido","status":403,\
-      "detail":"Não tem permissão para aceder a este recurso.","code":"ACCESS_DENIED"}""";
+      body(
+          403, "Acesso proibido", "Não tem permissão para aceder a este recurso.", "ACCESS_DENIED");
+
+  private static final String PASSWORD_CHANGE_BODY =
+      body(
+          403,
+          "Acesso proibido",
+          "Tem de alterar a senha antes de continuar.",
+          "PASSWORD_CHANGE_REQUIRED");
 
   @Override
   public void commence(
@@ -46,6 +54,17 @@ public class ProblemJsonSecurityHandler implements AuthenticationEntryPoint, Acc
       AccessDeniedException accessDeniedException)
       throws IOException {
     write(response, HttpStatus.FORBIDDEN, FORBIDDEN_BODY);
+  }
+
+  void writePasswordChangeRequired(HttpServletResponse response) throws IOException {
+    write(response, HttpStatus.FORBIDDEN, PASSWORD_CHANGE_BODY);
+  }
+
+  /** Os textos são constantes internas, sem aspas nem caracteres a escapar. */
+  private static String body(int status, String title, String detail, String code) {
+    return """
+        {"type":"about:blank","title":"%s","status":%d,"detail":"%s","code":"%s"}"""
+        .formatted(title, status, detail, code);
   }
 
   private static void write(HttpServletResponse response, HttpStatus status, String body)
