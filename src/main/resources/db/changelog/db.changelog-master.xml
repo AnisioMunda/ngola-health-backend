@@ -16,4 +16,7 @@
     <!-- Módulo 2: Utilizadores e autenticação -->
     <include file="changes/users/001-create-users-and-sessions.sql" relativeToChangelogFile="true"/>
 
+    <!-- Módulo 3: Auditoria -->
+    <include file="changes/audit/001-create-audit-events.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

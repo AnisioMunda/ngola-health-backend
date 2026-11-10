@@ -3,6 +3,12 @@ package com.ngolahealth.backend.modules.users.application;
 import com.ngolahealth.backend.common.exception.BadRequestException;
 import com.ngolahealth.backend.common.exception.UnauthorizedException;
 import com.ngolahealth.backend.config.properties.AuthProperties;
+import com.ngolahealth.backend.modules.audit.application.AuditActor;
+import com.ngolahealth.backend.modules.audit.application.AuditEntry;
+import com.ngolahealth.backend.modules.audit.application.AuditTrail;
+import com.ngolahealth.backend.modules.audit.domain.AuditAction;
+import com.ngolahealth.backend.modules.audit.domain.AuditEntityType;
+import com.ngolahealth.backend.modules.audit.domain.AuditOutcome;
 import com.ngolahealth.backend.modules.hospitals.application.HospitalService;
 import com.ngolahealth.backend.modules.hospitals.application.HospitalSummary;
 import com.ngolahealth.backend.modules.users.api.AuthDtos.ChangePasswordRequest;
@@ -48,6 +54,7 @@ public class AuthService {
   private final AccessTokenIssuer accessTokens;
   private final AuthProperties properties;
   private final Clock clock;
+  private final AuditTrail audit;
 
   /** Hash usado quando a conta não existe, para que o tempo de resposta não a denuncie. */
   private volatile String dummyHash;
@@ -62,10 +69,21 @@ public class AuthService {
     Optional<User> found = users.findByLogin(login);
     if (found.isEmpty()) {
       passwordEncoder.matches(request.password(), dummyHash());
+      audit.record(
+          new AuditEntry(
+              AuditAction.LOGIN_FAILED,
+              AuditEntityType.USER,
+              null,
+              null,
+              "Login falhado: utilizador desconhecido «" + abbreviate(login) + "»",
+              null,
+              AuditOutcome.FAILURE,
+              new AuditActor(null, abbreviate(login), null)));
       throw new UnauthorizedException(INVALID_CREDENTIALS, INVALID_CREDENTIALS_MESSAGE);
     }
     User user = found.get();
     if (user.isLocked(now)) {
+      recordLoginFailure(user, "Login recusado: conta bloqueada", AuditOutcome.DENIED);
       throw locked(user.getLockedUntil(), now);
     }
     if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
@@ -73,10 +91,14 @@ public class AuthService {
     }
     // A partir daqui a senha está correcta: pode-se explicar porque é que o acesso é recusado.
     if (!user.isActive()) {
+      recordLoginFailure(user, "Login recusado: conta desactivada", AuditOutcome.DENIED);
       throw new UnauthorizedException(
           ACCOUNT_INACTIVE, "A sua conta está desactivada. Contacte o administrador.");
     }
-    ensureHospitalActive(user);
+    if (!hospitalActive(user)) {
+      recordLoginFailure(user, "Login recusado: hospital inactivo", AuditOutcome.DENIED);
+      throw hospitalInactive();
+    }
 
     users.recordSuccessfulLogin(user.getId(), now);
     String secret = RefreshTokens.newSecret();
@@ -89,6 +111,14 @@ public class AuthService {
                 properties.refreshTokenTtl(),
                 ipAddress,
                 userAgent));
+    audit.record(
+        AuditEntry.success(
+                AuditAction.LOGIN,
+                AuditEntityType.USER,
+                user.getId(),
+                user.getHospitalId(),
+                "Sessão iniciada por " + user.getFullName() + " (" + user.getUsername() + ")")
+            .withActor(actorOf(user)));
     log.info("Login: utilizador={} sessão={}", user.getUsername(), session.getId());
     return tokens(user, session, secret);
   }
@@ -109,15 +139,30 @@ public class AuthService {
         throw invalidRefreshToken();
       }
       session.revoke(now, SessionRevocationReason.REFRESH_TOKEN_REUSED);
+      users
+          .findById(session.getUserId())
+          .ifPresent(
+              u ->
+                  audit.record(
+                      new AuditEntry(
+                          AuditAction.SESSION_REVOKED,
+                          AuditEntityType.USER,
+                          u.getId().toString(),
+                          u.getHospitalId(),
+                          "Sessão de "
+                              + u.getUsername()
+                              + " terminada: refresh token reutilizado (possível roubo)",
+                          null,
+                          AuditOutcome.DENIED,
+                          actorOf(u))));
       log.warn("Refresh token reutilizado: sessão {} revogada", session.getId());
       throw invalidRefreshToken();
     }
     User user =
         users
             .findById(session.getUserId())
-            .filter(u -> u.isActive() && !u.isLocked(now))
+            .filter(u -> u.isActive() && !u.isLocked(now) && hospitalActive(u))
             .orElseThrow(AuthService::invalidRefreshToken);
-    ensureHospitalActive(user);
 
     String secret = RefreshTokens.newSecret();
     session.rotate(RefreshTokens.hash(secret), now, properties.refreshTokenTtl());
@@ -128,19 +173,43 @@ public class AuthService {
   @Transactional
   public void logout(Optional<CurrentUser> current, String refreshToken) {
     Instant now = clock.instant();
-    current
-        .flatMap(user -> sessions.findById(user.sessionId()))
-        .ifPresent(s -> s.revoke(now, SessionRevocationReason.LOGOUT));
-    RefreshTokens.parse(refreshToken)
-        .flatMap(
-            parsed ->
-                sessions
-                    .findById(parsed.sessionId())
-                    .filter(
-                        s ->
-                            RefreshTokens.matches(
-                                RefreshTokens.hash(parsed.secret()), s.getTokenHash())))
-        .ifPresent(s -> s.revoke(now, SessionRevocationReason.LOGOUT));
+    var byAccessToken = current.flatMap(user -> sessions.findById(user.sessionId()));
+    var byRefreshToken =
+        RefreshTokens.parse(refreshToken)
+            .flatMap(
+                parsed ->
+                    sessions
+                        .findById(parsed.sessionId())
+                        .filter(
+                            s ->
+                                RefreshTokens.matches(
+                                    RefreshTokens.hash(parsed.secret()), s.getTokenHash())));
+    for (var session :
+        java.util.stream.Stream.of(byAccessToken, byRefreshToken)
+            .flatMap(Optional::stream)
+            .distinct()
+            .toList()) {
+      if (session.isActive(now)) {
+        session.revoke(now, SessionRevocationReason.LOGOUT);
+        users
+            .findById(session.getUserId())
+            .ifPresent(
+                u ->
+                    audit.record(
+                        AuditEntry.success(
+                                AuditAction.LOGOUT,
+                                AuditEntityType.USER,
+                                u.getId(),
+                                u.getHospitalId(),
+                                "Sessão terminada por "
+                                    + u.getFullName()
+                                    + " ("
+                                    + u.getUsername()
+                                    + ")")
+                            .withActor(actorOf(u))));
+      }
+    }
+    audit.markHandled();
   }
 
   @Transactional(readOnly = true)
@@ -165,6 +234,13 @@ public class AuthService {
     users.saveAndFlush(user);
     sessions.revokeAll(
         user.getId(), current.sessionId(), now, SessionRevocationReason.PASSWORD_CHANGED.name());
+    audit.record(
+        AuditEntry.success(
+            AuditAction.PASSWORD_CHANGED,
+            AuditEntityType.USER,
+            user.getId(),
+            user.getHospitalId(),
+            "Senha alterada pelo próprio: " + user.getUsername() + "; outras sessões terminadas"));
     log.info("Senha alterada: utilizador={}", user.getUsername());
   }
 
@@ -174,22 +250,55 @@ public class AuthService {
     if (attempts >= properties.maxFailedAttempts()) {
       Instant until = now.plus(properties.lockDuration());
       users.recordFailedLogin(user.getId(), 0, until);
+      recordLoginFailure(
+          user,
+          "Conta bloqueada até " + until + " após " + attempts + " tentativas falhadas",
+          AuditOutcome.DENIED,
+          AuditAction.ACCOUNT_LOCKED);
       log.warn("Conta bloqueada após {} tentativas: utilizador={}", attempts, user.getUsername());
       throw locked(until, now);
     }
     users.recordFailedLogin(user.getId(), attempts, null);
+    recordLoginFailure(
+        user, "Login falhado: senha incorrecta (tentativa " + attempts + ")", AuditOutcome.FAILURE);
     throw new UnauthorizedException(INVALID_CREDENTIALS, INVALID_CREDENTIALS_MESSAGE);
   }
 
-  private void ensureHospitalActive(User user) {
-    if (user.getHospitalId() != null
-        && !hospitals
-            .findSummary(user.getHospitalId())
-            .map(HospitalSummary::active)
-            .orElse(false)) {
-      throw new UnauthorizedException(
-          HOSPITAL_INACTIVE, "O hospital da sua conta está inactivo. Contacte o administrador.");
-    }
+  private boolean hospitalActive(User user) {
+    return user.getHospitalId() == null
+        || hospitals.findSummary(user.getHospitalId()).map(HospitalSummary::active).orElse(false);
+  }
+
+  private static UnauthorizedException hospitalInactive() {
+    return new UnauthorizedException(
+        HOSPITAL_INACTIVE, "O hospital da sua conta está inactivo. Contacte o administrador.");
+  }
+
+  private void recordLoginFailure(User user, String summary, AuditOutcome outcome) {
+    recordLoginFailure(user, summary, outcome, AuditAction.LOGIN_FAILED);
+  }
+
+  private void recordLoginFailure(
+      User user, String summary, AuditOutcome outcome, AuditAction action) {
+    audit.record(
+        new AuditEntry(
+            action,
+            AuditEntityType.USER,
+            user.getId().toString(),
+            user.getHospitalId(),
+            summary + " — " + user.getUsername(),
+            null,
+            outcome,
+            actorOf(user)));
+  }
+
+  private static AuditActor actorOf(User user) {
+    return new AuditActor(user.getId(), user.getUsername(), user.getFullName());
+  }
+
+  /** O texto escrito no campo de login pode ser qualquer coisa: limita o que se guarda. */
+  private static String abbreviate(String login) {
+    return login.length() <= 60 ? login : login.substring(0, 60) + "…";
   }
 
   private TokenResponse tokens(User user, UserSession session, String secret) {

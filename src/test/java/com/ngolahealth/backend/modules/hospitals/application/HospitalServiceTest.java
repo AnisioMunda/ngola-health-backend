@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.ngolahealth.backend.common.exception.BusinessException;
 import com.ngolahealth.backend.common.exception.ConflictException;
 import com.ngolahealth.backend.common.exception.NotFoundException;
+import com.ngolahealth.backend.modules.audit.application.AuditTrail;
 import com.ngolahealth.backend.modules.hospitals.api.HospitalRequest;
 import com.ngolahealth.backend.modules.hospitals.domain.Hospital;
 import com.ngolahealth.backend.modules.hospitals.domain.HospitalRepository;
@@ -26,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class HospitalServiceTest {
 
   @Mock private HospitalRepository repository;
+  @Mock private AuditTrail audit;
   @InjectMocks private HospitalService service;
 
   @Test
@@ -115,6 +117,7 @@ class HospitalServiceTest {
 
     assertThat(response.active()).isTrue();
     verify(repository, never()).saveAndFlush(any());
+    verify(audit).markHandled();
   }
 
   private static Hospital hospital() {

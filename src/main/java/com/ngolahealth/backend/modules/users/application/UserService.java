@@ -5,6 +5,10 @@ import com.ngolahealth.backend.common.exception.ConflictException;
 import com.ngolahealth.backend.common.exception.ForbiddenException;
 import com.ngolahealth.backend.common.exception.NotFoundException;
 import com.ngolahealth.backend.common.web.PageResponse;
+import com.ngolahealth.backend.modules.audit.application.AuditEntry;
+import com.ngolahealth.backend.modules.audit.application.AuditTrail;
+import com.ngolahealth.backend.modules.audit.domain.AuditAction;
+import com.ngolahealth.backend.modules.audit.domain.AuditEntityType;
 import com.ngolahealth.backend.modules.hospitals.application.HospitalService;
 import com.ngolahealth.backend.modules.users.api.UserDtos.CreateUserRequest;
 import com.ngolahealth.backend.modules.users.api.UserDtos.UpdateUserRequest;
@@ -51,6 +55,7 @@ public class UserService {
   private final PasswordEncoder passwordEncoder;
   private final CurrentUserProvider currentUser;
   private final Clock clock;
+  private final AuditTrail audit;
 
   @Transactional(readOnly = true)
   public PageResponse<UserResponse> search(
@@ -106,8 +111,17 @@ public class UserService {
                 profile,
                 hospitalId,
                 roles));
+    var response = toResponse(user);
+    audit.record(
+        AuditEntry.success(
+                AuditAction.CREATE,
+                AuditEntityType.USER,
+                user.getId(),
+                hospitalId,
+                "Utilizador criado: " + user.getFullName() + " (" + username + ")")
+            .withChanges(audit.snapshot(response)));
     log.info("Utilizador criado: {} por {}", username, actor.username());
-    return toResponse(user);
+    return response;
   }
 
   @Transactional
@@ -141,11 +155,20 @@ public class UserService {
     }
     ensureEmailFree(profile.email(), user.getId());
 
+    var before = toResponse(user);
     user.apply(profile);
     user.assign(hospitalId, roles);
-    var saved = users.saveAndFlush(user);
+    var after = toResponse(users.saveAndFlush(user));
+    audit.record(
+        AuditEntry.success(
+                AuditAction.UPDATE,
+                AuditEntityType.USER,
+                id,
+                hospitalId,
+                "Utilizador editado: " + after.fullName() + " (" + after.username() + ")")
+            .withChanges(audit.diff(before, after)));
     log.info("Utilizador actualizado: {} por {}", user.getUsername(), actor.username());
-    return toResponse(saved);
+    return after;
   }
 
   @Transactional
@@ -165,11 +188,25 @@ public class UserService {
             user.getId(), null, clock.instant(), SessionRevocationReason.USER_DEACTIVATED.name());
       }
       user = users.saveAndFlush(user);
+      audit.record(
+          AuditEntry.success(
+              active ? AuditAction.ACTIVATE : AuditAction.DEACTIVATE,
+              AuditEntityType.USER,
+              id,
+              user.getHospitalId(),
+              "Utilizador "
+                  + (active ? "activado: " : "desactivado: ")
+                  + user.getFullName()
+                  + " ("
+                  + user.getUsername()
+                  + ")"));
       log.info(
           "Utilizador {}: {} por {}",
           active ? "activado" : "desactivado",
           user.getUsername(),
           actor.username());
+    } else {
+      audit.markHandled();
     }
     return toResponse(user);
   }
@@ -183,6 +220,17 @@ public class UserService {
     user.resetPassword(passwordEncoder.encode(temporaryPassword), now);
     var saved = users.saveAndFlush(user);
     sessions.revokeAll(user.getId(), null, now, SessionRevocationReason.PASSWORD_RESET.name());
+    audit.record(
+        AuditEntry.success(
+            AuditAction.PASSWORD_RESET,
+            AuditEntityType.USER,
+            id,
+            user.getHospitalId(),
+            "Senha reposta (temporária) para "
+                + user.getFullName()
+                + " ("
+                + user.getUsername()
+                + "); sessões terminadas"));
     log.info("Senha reposta: {} por {}", user.getUsername(), actor.username());
     return toResponse(saved);
   }

@@ -3,6 +3,10 @@ package com.ngolahealth.backend.modules.hospitals.application;
 import com.ngolahealth.backend.common.exception.ConflictException;
 import com.ngolahealth.backend.common.exception.NotFoundException;
 import com.ngolahealth.backend.common.web.PageResponse;
+import com.ngolahealth.backend.modules.audit.application.AuditEntry;
+import com.ngolahealth.backend.modules.audit.application.AuditTrail;
+import com.ngolahealth.backend.modules.audit.domain.AuditAction;
+import com.ngolahealth.backend.modules.audit.domain.AuditEntityType;
 import com.ngolahealth.backend.modules.hospitals.api.HospitalRequest;
 import com.ngolahealth.backend.modules.hospitals.api.HospitalResponse;
 import com.ngolahealth.backend.modules.hospitals.domain.Hospital;
@@ -33,6 +37,7 @@ public class HospitalService {
   static final String CONCURRENT_MODIFICATION = "CONCURRENT_MODIFICATION";
 
   private final HospitalRepository repository;
+  private final AuditTrail audit;
 
   @Transactional(readOnly = true)
   public List<HospitalResponse> findActive() {
@@ -75,9 +80,18 @@ public class HospitalService {
     if (repository.existsByCode(details.code())) {
       throw codeInUse(details.code());
     }
-    var saved = repository.save(new Hospital(details));
+    var saved = repository.saveAndFlush(new Hospital(details));
+    var response = HospitalResponse.from(saved);
+    audit.record(
+        AuditEntry.success(
+                AuditAction.CREATE,
+                AuditEntityType.HOSPITAL,
+                saved.getId(),
+                saved.getId(),
+                "Hospital registado: " + saved.getName() + " (" + saved.getCode() + ")")
+            .withChanges(audit.snapshot(response)));
     log.info("Hospital registado: id={} código={}", saved.getId(), saved.getCode());
-    return HospitalResponse.from(saved);
+    return response;
   }
 
   @Transactional
@@ -92,10 +106,19 @@ public class HospitalService {
     if (repository.existsByCodeAndIdNot(details.code(), id)) {
       throw codeInUse(details.code());
     }
+    var before = HospitalResponse.from(hospital);
     hospital.apply(details);
-    var saved = repository.saveAndFlush(hospital);
+    var after = HospitalResponse.from(repository.saveAndFlush(hospital));
+    audit.record(
+        AuditEntry.success(
+                AuditAction.UPDATE,
+                AuditEntityType.HOSPITAL,
+                id,
+                id,
+                "Hospital editado: " + after.name() + " (" + after.code() + ")")
+            .withChanges(audit.diff(before, after)));
     log.info("Hospital actualizado: id={}", id);
-    return HospitalResponse.from(saved);
+    return after;
   }
 
   @Transactional
@@ -108,7 +131,16 @@ public class HospitalService {
         hospital.deactivate();
       }
       hospital = repository.saveAndFlush(hospital);
+      audit.record(
+          AuditEntry.success(
+              active ? AuditAction.ACTIVATE : AuditAction.DEACTIVATE,
+              AuditEntityType.HOSPITAL,
+              id,
+              id,
+              "Hospital " + (active ? "activado: " : "desactivado: ") + hospital.getName()));
       log.info("Hospital {}: id={}", active ? "activado" : "desactivado", id);
+    } else {
+      audit.markHandled();
     }
     return HospitalResponse.from(hospital);
   }

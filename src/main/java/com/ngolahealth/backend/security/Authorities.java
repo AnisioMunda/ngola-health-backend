@@ -12,6 +12,9 @@ public final class Authorities {
   /** Gerem utilizadores (o ADMIN só no seu hospital). */
   public static final String USER_MANAGERS = "hasAnyRole('SUPER_ADMIN', 'ADMIN')";
 
+  /** Consultam a auditoria (o ADMIN e o MANAGER só do próprio hospital). */
+  public static final String AUDIT_READERS = "hasAnyRole('SUPER_ADMIN', 'ADMIN', 'MANAGER')";
+
   /** Consultam utilizadores (o ADMIN e o MANAGER só no seu hospital). */
   public static final String USER_READERS = "hasAnyRole('SUPER_ADMIN', 'ADMIN', 'MANAGER')";
 

@@ -86,7 +86,7 @@ public class SecurityConfig {
     config.setAllowedOrigins(List.of(appProperties.baseUrl()));
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
     config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Hospital-Id"));
-    config.setExposedHeaders(List.of("Content-Disposition"));
+    config.setExposedHeaders(List.of("Content-Disposition", "X-Request-Id"));
     config.setAllowCredentials(true);
     config.setMaxAge(3600L);
 

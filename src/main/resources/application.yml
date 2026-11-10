@@ -99,7 +99,7 @@ logging:
   level:
     com.ngolahealth: INFO
   pattern:
-    console: "%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
+    console: "%d{HH:mm:ss.SSS} %-5level [%thread] [%X{requestId:-}] %logger{36} - %msg%n"
 
 ---
 # Perfil de desenvolvimento local (activo por omissão)
