@@ -4,5 +4,6 @@ package com.ngolahealth.backend.modules.audit.domain;
 public enum AuditEntityType {
   HOSPITAL,
   USER,
+  PATIENT,
   SYSTEM
 }

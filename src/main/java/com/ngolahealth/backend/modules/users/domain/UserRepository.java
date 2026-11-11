@@ -52,7 +52,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
    * Regista uma tentativa falhada fora da transacção do login (que falha), para não se perder. Não
    * incrementa a versão: não é uma edição do utilizador.
    */
-  @Modifying(clearAutomatically = true)
+  @Modifying(flushAutomatically = true, clearAutomatically = true)
   @Transactional
   @Query(
       "UPDATE User u SET u.failedLoginAttempts = :attempts, u.lockedUntil = :lockedUntil"
@@ -62,7 +62,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
       @Param("attempts") int attempts,
       @Param("lockedUntil") Instant lockedUntil);
 
-  @Modifying(clearAutomatically = true)
+  @Modifying(flushAutomatically = true, clearAutomatically = true)
   @Transactional
   @Query(
       "UPDATE User u SET u.failedLoginAttempts = 0, u.lockedUntil = NULL, u.lastLoginAt = :now"

@@ -19,4 +19,7 @@
     <!-- Módulo 3: Auditoria -->
     <include file="changes/audit/001-create-audit-events.sql" relativeToChangelogFile="true"/>
 
+    <!-- Módulo 4: Pacientes -->
+    <include file="changes/patients/001-create-patients.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

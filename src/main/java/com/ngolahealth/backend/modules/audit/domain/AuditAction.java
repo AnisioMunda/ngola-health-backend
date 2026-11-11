@@ -3,6 +3,8 @@ package com.ngolahealth.backend.modules.audit.domain;
 /** O que aconteceu. Novos módulos acrescentam valores aqui (a coluna é texto, sem CHECK). */
 public enum AuditAction {
   CREATE,
+  /** Consulta de um registo sensível (ex.: ficha clínica). */
+  VIEW,
   UPDATE,
   ACTIVATE,
   DEACTIVATE,
