@@ -37,4 +37,7 @@
     <!-- Módulo 9: Laboratório -->
     <include file="changes/laboratory/001-create-laboratory.sql" relativeToChangelogFile="true"/>
 
+    <!-- Módulo 10: Notificações -->
+    <include file="changes/notifications/001-create-notifications.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

@@ -18,6 +18,7 @@ import com.ngolahealth.backend.modules.laboratory.api.LabDtos.ItemResponse;
 import com.ngolahealth.backend.modules.laboratory.api.LabDtos.LabRequestResponse;
 import com.ngolahealth.backend.modules.laboratory.api.LabDtos.ResultRequest;
 import com.ngolahealth.backend.modules.laboratory.domain.ItemStatus;
+import com.ngolahealth.backend.modules.laboratory.domain.LabPriority;
 import com.ngolahealth.backend.modules.laboratory.domain.LabRequest;
 import com.ngolahealth.backend.modules.laboratory.domain.LabRequestItem;
 import com.ngolahealth.backend.modules.laboratory.domain.LabRequestNumbers;
@@ -47,6 +48,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -71,6 +73,7 @@ public class LabRequestService {
   private final AuditTrail audit;
   private final AppProperties app;
   private final Clock clock;
+  private final ApplicationEventPublisher events;
 
   /** "open" = ainda não concluídos nem cancelados (lista de trabalho do laboratório). */
   @Transactional(readOnly = true)
@@ -208,10 +211,24 @@ public class LabRequestService {
     var user = currentUser.get();
     var r = lock(id);
     var item = r.validate(itemId, user.id(), clock.instant());
-    return save(
-        r,
-        AuditAction.RESULT_VALIDATED,
-        "Resultado validado (" + item.getTestName() + " = " + display(item) + "): ");
+    var response =
+        save(
+            r,
+            AuditAction.RESULT_VALIDATED,
+            "Resultado validado (" + item.getTestName() + " = " + display(item) + "): ");
+    if (r.getStatus() == LabRequestStatus.COMPLETED) {
+      var validated =
+          r.getItems().stream().filter(i -> i.getStatus() == ItemStatus.VALIDATED).toList();
+      events.publishEvent(
+          new LabEvents.ResultsReady(
+              ref(r, response),
+              validated.size(),
+              (int) validated.stream().filter(LabRequestService::isAbnormal).count()));
+    } else if (isAbnormal(item)) {
+      events.publishEvent(
+          new LabEvents.AbnormalResult(ref(r, response), item.getTestName(), humanResult(item)));
+    }
+    return response;
   }
 
   @Transactional
@@ -232,18 +249,28 @@ public class LabRequestService {
             clock.instant());
     amendments.save(amendment);
     var item = r.item(itemId);
-    return save(
-        r,
-        AuditAction.RESULT_AMENDED,
-        "Resultado corrigido ("
-            + item.getTestName()
-            + ": "
-            + before
-            + " → "
-            + display(item)
-            + "; motivo: "
-            + req.reason().strip()
-            + "): ");
+    var beforeText = humanPrevious(amendment, item.getUnit());
+    var response =
+        save(
+            r,
+            AuditAction.RESULT_AMENDED,
+            "Resultado corrigido ("
+                + item.getTestName()
+                + ": "
+                + before
+                + " → "
+                + display(item)
+                + "; motivo: "
+                + req.reason().strip()
+                + "): ");
+    events.publishEvent(
+        new LabEvents.ResultAmended(
+            ref(r, response),
+            item.getTestName(),
+            beforeText,
+            humanResult(item),
+            req.reason().strip()));
+    return response;
   }
 
   @Transactional
@@ -409,6 +436,46 @@ public class LabRequestService {
   private AuditEntry entry(AuditAction action, LabRequest r, String summary) {
     return AuditEntry.success(
         action, AuditEntityType.LAB_REQUEST, r.getId(), r.getHospitalId(), summary);
+  }
+
+  private static LabEvents.RequestRef ref(LabRequest r, LabRequestResponse response) {
+    return new LabEvents.RequestRef(
+        r.getHospitalId(),
+        r.getId(),
+        r.getNumber(),
+        response.patientName() + " (processo " + response.patientRecordNumber() + ")",
+        r.getRequestedBy(),
+        r.getPriority() == LabPriority.URGENT);
+  }
+
+  private static boolean isAbnormal(LabRequestItem i) {
+    return i.getFlag() != null && i.getFlag() != ResultFlag.NORMAL;
+  }
+
+  /** Resultado legível para mensagens: "10.5 g/dL (baixo)". */
+  private static String humanResult(LabRequestItem i) {
+    return humanValue(i.getNumericValue(), i.getTextValue(), i.getUnit(), i.getFlag());
+  }
+
+  private static String humanPrevious(ResultAmendment a, String unit) {
+    return humanValue(a.getPreviousNumeric(), a.getPreviousText(), unit, a.getPreviousFlag());
+  }
+
+  private static String humanValue(
+      java.math.BigDecimal numeric, String text, String unit, ResultFlag flag) {
+    var v =
+        numeric != null
+            ? numeric.stripTrailingZeros().toPlainString() + (unit == null ? "" : " " + unit)
+            : text;
+    if (v == null) {
+      return "—";
+    }
+    return switch (flag == null ? ResultFlag.NORMAL : flag) {
+      case LOW -> v + " (baixo)";
+      case HIGH -> v + " (alto)";
+      case ABNORMAL -> v + " (alterado)";
+      case NORMAL -> v;
+    };
   }
 
   private static String describe(LabRequestResponse r) {

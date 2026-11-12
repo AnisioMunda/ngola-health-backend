@@ -85,6 +85,13 @@ app:
       YELLOW: 60
       GREEN: 120
       BLUE: 240
+  notifications:
+    # Notificações mais antigas do que isto são apagadas (lidas ou não).
+    retention: 90d
+    cleanup-cron: "0 15 3 * * *"
+    # Resumo diário de stock para a farmácia (hora local de app.time-zone).
+    stock-alert-cron: "0 30 7 * * *"
+    stock-expiry-days: 30
 
 management:
   endpoints:

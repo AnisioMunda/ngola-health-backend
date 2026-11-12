@@ -43,6 +43,19 @@ public class StaffDirectory {
     return users.findActiveByHospitalAndRole(hospitalId, role).stream().map(StaffRef::of).toList();
   }
 
+  /** Dos utilizadores indicados, os que estão activos no hospital (destinatários válidos). */
+  @Transactional(readOnly = true)
+  public java.util.Set<UUID> activeIn(UUID hospitalId, Collection<UUID> ids) {
+    var wanted = ids.stream().filter(Objects::nonNull).collect(Collectors.toSet());
+    if (wanted.isEmpty()) {
+      return java.util.Set.of();
+    }
+    return users.findAllById(wanted).stream()
+        .filter(u -> u.isActive() && Objects.equals(u.getHospitalId(), hospitalId))
+        .map(User::getId)
+        .collect(Collectors.toSet());
+  }
+
   /** Nomes de utilizadores (de qualquer estado), para mostrar autores e responsáveis. */
   @Transactional(readOnly = true)
   public Map<UUID, String> names(Collection<UUID> ids) {

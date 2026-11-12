@@ -34,6 +34,9 @@ public class AuditSafetyNetInterceptor implements HandlerInterceptor {
   /** Escritas sem interesse para auditoria (a renovação de sessão não altera dados). */
   private static final Set<String> IGNORED_PATHS = Set.of("/auth/refresh", "/auth/login");
 
+  /** Marcar notificações como lidas é estado pessoal de leitura, não um dado do hospital. */
+  private static final String IGNORED_PREFIX = "/notifications/";
+
   private final AuditTrail trail;
   private final CurrentUserProvider currentUser;
 
@@ -44,7 +47,7 @@ public class AuditSafetyNetInterceptor implements HandlerInterceptor {
       return;
     }
     String path = pathWithinApplication(request);
-    if (IGNORED_PATHS.contains(path)) {
+    if (IGNORED_PATHS.contains(path) || path.startsWith(IGNORED_PREFIX)) {
       return;
     }
     int status = response.getStatus();

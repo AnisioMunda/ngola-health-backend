@@ -293,6 +293,15 @@ public class StockService {
     if (days < 1 || days > 365) {
       throw new BadRequestException("INVALID_DAYS", "O prazo deve estar entre 1 e 365 dias.");
     }
+    return snapshot(days);
+  }
+
+  /**
+   * Alertas do hospital em âmbito (sem utilizador): para tarefas agendadas, que correm dentro de
+   * {@code TenantContext.callAs}.
+   */
+  @Transactional(readOnly = true)
+  public StockAlerts snapshot(int days) {
     var today = catalog.today();
     var active = medications.findAllActive();
     var stock = catalog.stockInfo(active.stream().map(Medication::getId).toList());
