@@ -34,4 +34,7 @@
     <!-- Módulo 8: Prescrições -->
     <include file="changes/prescriptions/001-create-prescriptions.sql" relativeToChangelogFile="true"/>
 
+    <!-- Módulo 9: Laboratório -->
+    <include file="changes/laboratory/001-create-laboratory.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

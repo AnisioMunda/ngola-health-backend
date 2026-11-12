@@ -56,6 +56,22 @@ public final class Authorities {
   /** Emitem e cancelam prescrições (acto médico). */
   public static final String PRESCRIBERS = "hasRole('DOCTOR')";
 
+  /** Consultam pedidos e resultados de laboratório. */
+  public static final String LAB_READERS =
+      "hasAnyRole('ADMIN', 'MANAGER', 'DOCTOR', 'NURSE', 'LAB_TECHNICIAN')";
+
+  /** Gerem o catálogo de exames. */
+  public static final String LAB_CATALOG = "hasAnyRole('ADMIN', 'LAB_TECHNICIAN')";
+
+  /** Pedem e cancelam exames (acto médico). */
+  public static final String LAB_REQUESTERS = "hasRole('DOCTOR')";
+
+  /** Registam a colheita de amostras. */
+  public static final String SAMPLE_COLLECTORS = "hasAnyRole('NURSE', 'LAB_TECHNICIAN')";
+
+  /** Analisam, registam, validam e corrigem resultados. */
+  public static final String LAB_TECHNICIANS = "hasRole('LAB_TECHNICIAN')";
+
   /** Consultam a auditoria (o ADMIN e o MANAGER só do próprio hospital). */
   public static final String AUDIT_READERS = "hasAnyRole('SUPER_ADMIN', 'ADMIN', 'MANAGER')";
 

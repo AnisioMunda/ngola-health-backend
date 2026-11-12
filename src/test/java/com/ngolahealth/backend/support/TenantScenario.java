@@ -59,6 +59,11 @@ public class TenantScenario {
     for (UUID h : hospitals) {
       String id = h.toString();
       jdbc.update("DELETE FROM audit_events WHERE hospital_id = ?", id);
+      jdbc.update("DELETE FROM lab_result_amendments WHERE hospital_id = ?", id);
+      jdbc.update("DELETE FROM lab_request_items WHERE hospital_id = ?", id);
+      jdbc.update("DELETE FROM lab_requests WHERE hospital_id = ?", id);
+      jdbc.update("DELETE FROM lab_request_sequences WHERE hospital_id = ?", id);
+      jdbc.update("DELETE FROM lab_tests WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM prescription_items WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM prescriptions WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM prescription_sequences WHERE hospital_id = ?", id);

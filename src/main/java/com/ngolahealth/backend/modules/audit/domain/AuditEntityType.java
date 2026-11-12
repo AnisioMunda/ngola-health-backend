@@ -9,5 +9,7 @@ public enum AuditEntityType {
   TRIAGE,
   MEDICATION,
   PRESCRIPTION,
+  LAB_TEST,
+  LAB_REQUEST,
   SYSTEM
 }
