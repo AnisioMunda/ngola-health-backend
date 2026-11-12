@@ -5,5 +5,6 @@ public enum AuditEntityType {
   HOSPITAL,
   USER,
   PATIENT,
+  EPISODE,
   SYSTEM
 }

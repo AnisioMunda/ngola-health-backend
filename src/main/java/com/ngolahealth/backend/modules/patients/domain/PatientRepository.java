@@ -20,6 +20,9 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
   @Query("SELECT p FROM Patient p WHERE p.id = :id")
   Optional<Patient> findScoped(@Param("id") UUID id);
 
+  @Query("SELECT p FROM Patient p WHERE p.id IN :ids")
+  List<Patient> findAllScoped(@Param("ids") java.util.Collection<UUID> ids);
+
   boolean existsByNationalId(String nationalId);
 
   boolean existsByNationalIdAndIdNot(String nationalId, UUID id);

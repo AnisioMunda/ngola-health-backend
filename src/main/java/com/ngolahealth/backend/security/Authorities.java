@@ -23,6 +23,16 @@ public final class Authorities {
   /** Activam e inactivam pacientes. */
   public static final String PATIENT_ADMINS = "hasRole('ADMIN')";
 
+  /** Agendam episódios e cancelam episódios ainda não iniciados. */
+  public static final String EPISODE_SCHEDULERS =
+      "hasAnyRole('ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST')";
+
+  /** Iniciam episódios e registam sinais vitais. */
+  public static final String EPISODE_CARE = "hasAnyRole('DOCTOR', 'NURSE')";
+
+  /** Registam anamnese e diagnóstico, concluem e cancelam episódios em curso. */
+  public static final String EPISODE_DOCTORS = "hasRole('DOCTOR')";
+
   /** Consultam a auditoria (o ADMIN e o MANAGER só do próprio hospital). */
   public static final String AUDIT_READERS = "hasAnyRole('SUPER_ADMIN', 'ADMIN', 'MANAGER')";
 

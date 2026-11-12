@@ -22,4 +22,7 @@
     <!-- Módulo 4: Pacientes -->
     <include file="changes/patients/001-create-patients.sql" relativeToChangelogFile="true"/>
 
+    <!-- Módulo 5: Episódios -->
+    <include file="changes/episodes/001-create-episodes.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

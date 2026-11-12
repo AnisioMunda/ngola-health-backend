@@ -6,6 +6,9 @@ public enum AuditAction {
   /** Consulta de um registo sensível (ex.: ficha clínica). */
   VIEW,
   UPDATE,
+  START,
+  COMPLETE,
+  CANCEL,
   ACTIVATE,
   DEACTIVATE,
   LOGIN,

@@ -13,7 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.jayway.jsonpath.JsonPath;
 import com.ngolahealth.backend.security.Role;
 import com.ngolahealth.backend.support.AuthFixtures;
-import java.util.ArrayList;
+import com.ngolahealth.backend.support.TenantScenario;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -43,9 +43,7 @@ class PatientApiIntegrationTest {
   @Autowired private AuthFixtures fixtures;
   @Autowired private JdbcTemplate jdbc;
 
-  private final List<UUID> hospitals = new ArrayList<>();
-  private final List<UUID> users = new ArrayList<>();
-  private String suffix;
+  private TenantScenario scenario;
   private UUID hospitalA;
   private UUID hospitalB;
   private RequestPostProcessor receptionistA;
@@ -53,29 +51,16 @@ class PatientApiIntegrationTest {
 
   @BeforeEach
   void setUp() throws Exception {
-    suffix = UUID.randomUUID().toString().substring(0, 8);
-    hospitalA = hospital("PA");
-    hospitalB = hospital("PB");
-    receptionistA = login(user("rec.a", hospitalA, Role.RECEPTIONIST));
-    receptionistB = login(user("rec.b", hospitalB, Role.RECEPTIONIST));
+    scenario = new TenantScenario(fixtures, mockMvc, jdbc);
+    hospitalA = scenario.hospital("PA");
+    hospitalB = scenario.hospital("PB");
+    receptionistA = scenario.as("rec.a", hospitalA, Role.RECEPTIONIST);
+    receptionistB = scenario.as("rec.b", hospitalB, Role.RECEPTIONIST);
   }
 
   @AfterEach
   void cleanUp() {
-    for (UUID h : hospitals) {
-      jdbc.update("DELETE FROM audit_events WHERE hospital_id = ?", h.toString());
-      jdbc.update("DELETE FROM patients WHERE hospital_id = ?", h.toString());
-      jdbc.update("DELETE FROM patient_record_sequences WHERE hospital_id = ?", h.toString());
-    }
-    for (UUID u : users) {
-      jdbc.update("DELETE FROM audit_events WHERE actor_id = ?", u.toString());
-      jdbc.update("DELETE FROM user_sessions WHERE user_id = ?", u.toString());
-      jdbc.update("DELETE FROM user_roles WHERE user_id = ?", u.toString());
-      jdbc.update("DELETE FROM users WHERE id = ?", u.toString());
-    }
-    for (UUID h : hospitals) {
-      jdbc.update("DELETE FROM hospitals WHERE id = ?", h.toString());
-    }
+    scenario.cleanUp();
   }
 
   @Test
@@ -238,20 +223,12 @@ class PatientApiIntegrationTest {
 
   // ---------- Auxiliares ----------
 
-  private UUID hospital(String prefix) {
-    UUID id = fixtures.hospital(prefix + "-" + suffix.substring(0, 6).toUpperCase());
-    hospitals.add(id);
-    return id;
+  private RequestPostProcessor login(String username) throws Exception {
+    return scenario.login(username);
   }
 
   private String user(String name, UUID hospital, Role role) {
-    String username = name + "." + suffix;
-    users.add(fixtures.user(username, hospital, role).getId());
-    return username;
-  }
-
-  private RequestPostProcessor login(String username) throws Exception {
-    return fixtures.bearer(mockMvc, username);
+    return scenario.user(name, hospital, role);
   }
 
   private String create(RequestPostProcessor as, String body) throws Exception {

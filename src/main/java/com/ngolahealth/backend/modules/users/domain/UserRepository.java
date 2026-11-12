@@ -21,6 +21,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
   boolean existsByUsername(String username);
 
+  @Query(
+      "SELECT u FROM User u WHERE u.hospitalId = :hospitalId AND u.status = 'ACTIVE'"
+          + " AND :role MEMBER OF u.roles ORDER BY u.fullName")
+  java.util.List<User> findActiveByHospitalAndRole(
+      @Param("hospitalId") UUID hospitalId, @Param("role") Role role);
+
   boolean existsByEmail(String email);
 
   boolean existsByEmailAndIdNot(String email, UUID id);
