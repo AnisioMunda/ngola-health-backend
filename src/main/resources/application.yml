@@ -75,6 +75,15 @@ app:
     refresh-token-ttl: 12h
     max-failed-attempts: 5
     lock-duration: 15m
+  triage:
+    zone: Africa/Luanda
+    # Tempos-alvo (minutos) do protocolo de Manchester; validar com a direcção clínica.
+    target-minutes:
+      RED: 0
+      ORANGE: 10
+      YELLOW: 60
+      GREEN: 120
+      BLUE: 240
 
 management:
   endpoints:

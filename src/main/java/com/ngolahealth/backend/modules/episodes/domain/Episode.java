@@ -1,5 +1,6 @@
 package com.ngolahealth.backend.modules.episodes.domain;
 
+import com.ngolahealth.backend.common.clinical.Vitals;
 import com.ngolahealth.backend.common.exception.BadRequestException;
 import com.ngolahealth.backend.common.exception.ConflictException;
 import com.ngolahealth.backend.common.persistence.HospitalScopedEntity;

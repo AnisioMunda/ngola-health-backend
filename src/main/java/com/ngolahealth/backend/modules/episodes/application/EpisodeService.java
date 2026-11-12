@@ -1,5 +1,6 @@
 package com.ngolahealth.backend.modules.episodes.application;
 
+import com.ngolahealth.backend.common.clinical.Vitals;
 import com.ngolahealth.backend.common.exception.BadRequestException;
 import com.ngolahealth.backend.common.exception.ConflictException;
 import com.ngolahealth.backend.common.exception.ForbiddenException;
@@ -20,7 +21,6 @@ import com.ngolahealth.backend.modules.episodes.domain.Episode;
 import com.ngolahealth.backend.modules.episodes.domain.EpisodeRepository;
 import com.ngolahealth.backend.modules.episodes.domain.EpisodeStatus;
 import com.ngolahealth.backend.modules.episodes.domain.EpisodeType;
-import com.ngolahealth.backend.modules.episodes.domain.Vitals;
 import com.ngolahealth.backend.modules.patients.application.PatientDirectory;
 import com.ngolahealth.backend.modules.patients.application.PatientDirectory.PatientRef;
 import com.ngolahealth.backend.modules.users.application.StaffDirectory;
@@ -167,12 +167,7 @@ public class EpisodeService {
     var user = requireHospitalUser();
     var episode = load(id);
     checkVersion(episode, r.version());
-    if (r.systolicBp() != null && r.diastolicBp() != null && r.diastolicBp() >= r.systolicBp()) {
-      throw new BadRequestException(
-          "INVALID_BLOOD_PRESSURE", "A TA diastólica tem de ser inferior à sistólica.");
-    }
-    var before = toResponse(episode);
-    episode.recordVitals(
+    var vitals =
         new Vitals(
             r.systolicBp(),
             r.diastolicBp(),
@@ -181,9 +176,10 @@ public class EpisodeService {
             r.temperature(),
             r.oxygenSaturation(),
             r.weightKg(),
-            r.heightCm()),
-        user.id(),
-        clock.instant());
+            r.heightCm());
+    vitals.validate();
+    var before = toResponse(episode);
+    episode.recordVitals(vitals, user.id(), clock.instant());
     return saveAndAudit(episode, before, AuditAction.UPDATE, "Sinais vitais registados: ");
   }
 

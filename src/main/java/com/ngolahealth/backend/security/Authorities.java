@@ -33,6 +33,12 @@ public final class Authorities {
   /** Registam anamnese e diagnóstico, concluem e cancelam episódios em curso. */
   public static final String EPISODE_DOCTORS = "hasRole('DOCTOR')";
 
+  /** Fazem triagem: registam, re-triam, chamam, concluem e identificam doentes. */
+  public static final String TRIAGE_STAFF = "hasAnyRole('DOCTOR', 'NURSE')";
+
+  /** Dão um doente em espera como ausente (saiu sem ser atendido). */
+  public static final String TRIAGE_DESK = "hasAnyRole('DOCTOR', 'NURSE', 'RECEPTIONIST')";
+
   /** Consultam a auditoria (o ADMIN e o MANAGER só do próprio hospital). */
   public static final String AUDIT_READERS = "hasAnyRole('SUPER_ADMIN', 'ADMIN', 'MANAGER')";
 

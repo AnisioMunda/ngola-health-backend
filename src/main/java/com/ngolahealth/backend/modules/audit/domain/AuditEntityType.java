@@ -6,5 +6,6 @@ public enum AuditEntityType {
   USER,
   PATIENT,
   EPISODE,
+  TRIAGE,
   SYSTEM
 }

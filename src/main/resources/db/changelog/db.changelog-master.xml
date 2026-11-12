@@ -25,4 +25,7 @@
     <!-- Módulo 5: Episódios -->
     <include file="changes/episodes/001-create-episodes.sql" relativeToChangelogFile="true"/>
 
+    <!-- Módulo 6: Triagem -->
+    <include file="changes/triage/001-create-triage.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>
