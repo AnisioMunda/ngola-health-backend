@@ -28,4 +28,7 @@
     <!-- Módulo 6: Triagem -->
     <include file="changes/triage/001-create-triage.sql" relativeToChangelogFile="true"/>
 
+    <!-- Módulo 7: Farmácia -->
+    <include file="changes/pharmacy/001-create-pharmacy.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

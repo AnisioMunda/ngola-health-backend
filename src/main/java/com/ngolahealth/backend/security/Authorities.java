@@ -39,6 +39,16 @@ public final class Authorities {
   /** Dão um doente em espera como ausente (saiu sem ser atendido). */
   public static final String TRIAGE_DESK = "hasAnyRole('DOCTOR', 'NURSE', 'RECEPTIONIST')";
 
+  /** Consultam o catálogo e o stock (os médicos precisam dele para prescrever). */
+  public static final String PHARMACY_READERS =
+      "hasAnyRole('ADMIN', 'MANAGER', 'DOCTOR', 'NURSE', 'PHARMACIST')";
+
+  /** Gerem o catálogo de medicamentos. */
+  public static final String CATALOG_MANAGERS = "hasAnyRole('ADMIN', 'PHARMACIST')";
+
+  /** Movimentam stock: recepção, acertos, abates e dispensa. */
+  public static final String PHARMACISTS = "hasRole('PHARMACIST')";
+
   /** Consultam a auditoria (o ADMIN e o MANAGER só do próprio hospital). */
   public static final String AUDIT_READERS = "hasAnyRole('SUPER_ADMIN', 'ADMIN', 'MANAGER')";
 

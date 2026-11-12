@@ -66,6 +66,8 @@ server:
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:4200}
+  # Fuso horário que define o "dia" local (senhas de triagem, validades, relatórios).
+  time-zone: Africa/Luanda
   auth:
     # Segredo HS256 em Base64 (>= 256 bits). Gerar com: openssl rand -base64 32
     jwt-secret: ${JWT_SECRET:}
@@ -76,7 +78,6 @@ app:
     max-failed-attempts: 5
     lock-duration: 15m
   triage:
-    zone: Africa/Luanda
     # Tempos-alvo (minutos) do protocolo de Manchester; validar com a direcção clínica.
     target-minutes:
       RED: 0

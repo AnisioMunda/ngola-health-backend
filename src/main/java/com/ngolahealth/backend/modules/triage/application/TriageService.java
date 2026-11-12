@@ -4,6 +4,7 @@ import com.ngolahealth.backend.common.exception.BadRequestException;
 import com.ngolahealth.backend.common.exception.ConflictException;
 import com.ngolahealth.backend.common.exception.ForbiddenException;
 import com.ngolahealth.backend.common.exception.NotFoundException;
+import com.ngolahealth.backend.config.properties.AppProperties;
 import com.ngolahealth.backend.config.properties.TriageProperties;
 import com.ngolahealth.backend.modules.audit.application.AuditEntry;
 import com.ngolahealth.backend.modules.audit.application.AuditTrail;
@@ -69,6 +70,7 @@ public class TriageService {
   private final CurrentUserProvider currentUser;
   private final AuditTrail audit;
   private final TriageProperties properties;
+  private final AppProperties app;
   private final Clock clock;
 
   @Transactional(readOnly = true)
@@ -300,7 +302,7 @@ public class TriageService {
   }
 
   private LocalDate today() {
-    return LocalDate.ofInstant(clock.instant(), properties.zone());
+    return LocalDate.ofInstant(clock.instant(), app.timeZone());
   }
 
   private CurrentUser requireHospitalUser() {
