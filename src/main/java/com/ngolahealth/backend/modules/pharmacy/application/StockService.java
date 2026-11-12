@@ -237,6 +237,16 @@ public class StockService {
   }
 
   /**
+   * Dispensa ligada a uma prescrição (o controlo "exige receita" já está satisfeito). Usado pelo
+   * módulo de prescrições; corre na transacção de quem chama.
+   */
+  @Transactional
+  public DispenseResponse dispenseForPrescription(
+      UUID medicationId, int quantity, MovementContext context) {
+    return consumeFefo(catalog.load(medicationId), quantity, context);
+  }
+
+  /**
    * Retira {@code quantity} unidades por FEFO, com os lotes bloqueados. Usado pela dispensa directa
    * e pelo módulo de prescrições. Falha sem alterar nada se não houver stock suficiente.
    */

@@ -31,4 +31,7 @@
     <!-- Módulo 7: Farmácia -->
     <include file="changes/pharmacy/001-create-pharmacy.sql" relativeToChangelogFile="true"/>
 
+    <!-- Módulo 8: Prescrições -->
+    <include file="changes/prescriptions/001-create-prescriptions.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

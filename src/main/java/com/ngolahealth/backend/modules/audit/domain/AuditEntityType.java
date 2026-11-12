@@ -8,5 +8,6 @@ public enum AuditEntityType {
   EPISODE,
   TRIAGE,
   MEDICATION,
+  PRESCRIPTION,
   SYSTEM
 }

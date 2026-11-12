@@ -117,6 +117,19 @@ public class MedicationService {
     return toResponse(m, stockInfo(List.of(id)));
   }
 
+  /** Medicamentos (com stock utilizável) por id, para outros módulos. */
+  @Transactional(readOnly = true)
+  public Map<UUID, MedicationResponse> findByIds(java.util.Collection<UUID> ids) {
+    if (ids.isEmpty()) {
+      return Map.of();
+    }
+    var list = medications.findAllScoped(ids);
+    var stock = stockInfo(list.stream().map(Medication::getId).toList());
+    var result = new HashMap<UUID, MedicationResponse>();
+    list.forEach(m -> result.put(m.getId(), toResponse(m, stock)));
+    return result;
+  }
+
   Medication load(UUID id) {
     return medications
         .findScoped(id)

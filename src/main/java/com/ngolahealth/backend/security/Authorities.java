@@ -49,6 +49,13 @@ public final class Authorities {
   /** Movimentam stock: recepção, acertos, abates e dispensa. */
   public static final String PHARMACISTS = "hasRole('PHARMACIST')";
 
+  /** Consultam prescrições. */
+  public static final String PRESCRIPTION_READERS =
+      "hasAnyRole('ADMIN', 'MANAGER', 'DOCTOR', 'NURSE', 'PHARMACIST')";
+
+  /** Emitem e cancelam prescrições (acto médico). */
+  public static final String PRESCRIBERS = "hasRole('DOCTOR')";
+
   /** Consultam a auditoria (o ADMIN e o MANAGER só do próprio hospital). */
   public static final String AUDIT_READERS = "hasAnyRole('SUPER_ADMIN', 'ADMIN', 'MANAGER')";
 
