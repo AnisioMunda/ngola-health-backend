@@ -19,10 +19,12 @@ public class PatientDirectory {
 
   private final PatientRepository patients;
 
-  public record PatientRef(UUID id, String recordNumber, String fullName, boolean active) {
+  public record PatientRef(
+      UUID id, String recordNumber, String fullName, boolean active, String phone) {
 
     static PatientRef of(Patient p) {
-      return new PatientRef(p.getId(), p.getRecordNumber(), p.getFullName(), p.isActive());
+      return new PatientRef(
+          p.getId(), p.getRecordNumber(), p.getFullName(), p.isActive(), p.getPhone());
     }
   }
 

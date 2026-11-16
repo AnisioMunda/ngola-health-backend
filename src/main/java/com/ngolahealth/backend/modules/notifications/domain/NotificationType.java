@@ -10,5 +10,11 @@ public enum NotificationType {
   LAB_RESULT_AMENDED,
   /** Resumo diário de stock baixo, esgotado ou a expirar. */
   STOCK_ALERTS,
+  /** Uma marcação do médico foi cancelada por outra pessoa. */
+  APPOINTMENT_CANCELLED,
+  /** Uma marcação do médico foi remarcada. */
+  APPOINTMENT_RESCHEDULED,
+  /** Resumo da agenda do dia seguinte. */
+  AGENDA_REMINDER,
   SYSTEM
 }

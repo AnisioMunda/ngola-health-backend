@@ -11,5 +11,8 @@ public enum AuditEntityType {
   PRESCRIPTION,
   LAB_TEST,
   LAB_REQUEST,
+  SCHEDULE,
+  SCHEDULE_BLOCK,
+  APPOINTMENT,
   SYSTEM
 }

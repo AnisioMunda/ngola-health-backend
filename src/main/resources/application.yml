@@ -92,6 +92,11 @@ app:
     # Resumo diário de stock para a farmácia (hora local de app.time-zone).
     stock-alert-cron: "0 30 7 * * *"
     stock-expiry-days: 30
+  scheduling:
+    # Marcações aceites até este número de dias no futuro.
+    max-days-ahead: 180
+    # Resumo da agenda de amanhã para cada médico (hora local de app.time-zone).
+    reminder-cron: "0 0 18 * * *"
 
 management:
   endpoints:

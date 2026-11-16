@@ -40,4 +40,7 @@
     <!-- Módulo 10: Notificações -->
     <include file="changes/notifications/001-create-notifications.sql" relativeToChangelogFile="true"/>
 
+    <!-- Módulo 11: Agendamento -->
+    <include file="changes/scheduling/001-create-scheduling.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

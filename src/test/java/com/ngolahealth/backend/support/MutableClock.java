@@ -15,6 +15,11 @@ public class MutableClock extends Clock {
     now = now.plus(duration);
   }
 
+  /** Fixa o relógio num instante (ex.: a véspera de um dia com consultas). */
+  public void setTo(Instant instant) {
+    now = instant;
+  }
+
   public void reset() {
     now = Instant.now();
   }

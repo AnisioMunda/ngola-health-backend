@@ -78,5 +78,19 @@ public final class Authorities {
   /** Consultam utilizadores (o ADMIN e o MANAGER só no seu hospital). */
   public static final String USER_READERS = "hasAnyRole('SUPER_ADMIN', 'ADMIN', 'MANAGER')";
 
+  /** Consultam agendas, vagas e marcações. */
+  public static final String SCHEDULE_READERS =
+      "hasAnyRole('ADMIN', 'MANAGER', 'DOCTOR', 'NURSE', 'RECEPTIONIST')";
+
+  /** Definem os horários semanais dos médicos. */
+  public static final String SCHEDULE_MANAGERS = "hasAnyRole('ADMIN', 'MANAGER')";
+
+  /** Registam ausências (o médico só as suas). */
+  public static final String SCHEDULE_BLOCKERS = "hasAnyRole('ADMIN', 'MANAGER', 'DOCTOR')";
+
+  /** Marcam, confirmam, remarcam, cancelam e registam chegadas e faltas. */
+  public static final String APPOINTMENT_BOOKERS =
+      "hasAnyRole('ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST')";
+
   private Authorities() {}
 }
