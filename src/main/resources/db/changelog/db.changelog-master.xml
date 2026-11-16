@@ -43,4 +43,7 @@
     <!-- Módulo 11: Agendamento -->
     <include file="changes/scheduling/001-create-scheduling.sql" relativeToChangelogFile="true"/>
 
+    <!-- Módulo 12: Internamento -->
+    <include file="changes/inpatient/001-create-inpatient.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

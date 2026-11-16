@@ -16,5 +16,7 @@ public enum NotificationType {
   APPOINTMENT_RESCHEDULED,
   /** Resumo da agenda do dia seguinte. */
   AGENDA_REMINDER,
+  /** O médico ficou responsável por um internamento (ao internar ou por mudança). */
+  INPATIENT_ASSIGNED,
   SYSTEM
 }

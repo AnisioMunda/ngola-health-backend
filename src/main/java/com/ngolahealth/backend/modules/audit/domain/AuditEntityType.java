@@ -14,5 +14,8 @@ public enum AuditEntityType {
   SCHEDULE,
   SCHEDULE_BLOCK,
   APPOINTMENT,
+  WARD,
+  BED,
+  ADMISSION,
   SYSTEM
 }

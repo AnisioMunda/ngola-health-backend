@@ -104,6 +104,56 @@ public class EpisodeService {
 
   @Transactional
   public EpisodeResponse create(CreateEpisodeRequest request) {
+    if (request.type() == EpisodeType.INPATIENT) {
+      throw new BadRequestException(
+          "INPATIENT_VIA_ADMISSION",
+          "Os episódios de internamento abrem-se ao internar o paciente (módulo Internamento).");
+    }
+    return open(request);
+  }
+
+  /**
+   * Para o módulo de internamento: abre o episódio de internamento já em curso, para receber
+   * prescrições, exames e registos durante a estadia.
+   */
+  @Transactional
+  public EpisodeResponse openInpatient(UUID patientId, UUID doctorId, String reason) {
+    var created =
+        open(new CreateEpisodeRequest(patientId, EpisodeType.INPATIENT, doctorId, null, reason));
+    return start(created.id());
+  }
+
+  /** Para o módulo de internamento: na alta, regista o diagnóstico final e conclui. */
+  @Transactional
+  public EpisodeResponse closeInpatient(UUID id, String diagnosis) {
+    var user = requireHospitalUser();
+    var episode = loadInpatient(id);
+    var before = toResponse(episode);
+    episode.recordClinicalNotes(episode.getSymptoms(), diagnosis, episode.getClinicalNotes());
+    episode.complete(user.id(), clock.instant());
+    return saveAndAudit(episode, before, AuditAction.COMPLETE, "Episódio concluído (alta): ");
+  }
+
+  /** Para o módulo de internamento: internamento anulado (registo por engano). */
+  @Transactional
+  public EpisodeResponse cancelInpatient(UUID id, String reason) {
+    var user = requireHospitalUser();
+    var episode = loadInpatient(id);
+    var before = toResponse(episode);
+    episode.cancel(reason, user.id(), clock.instant());
+    return saveAndAudit(
+        episode, before, AuditAction.CANCEL, "Episódio cancelado (internamento anulado): ");
+  }
+
+  private Episode loadInpatient(UUID id) {
+    var episode = load(id);
+    if (episode.getType() != EpisodeType.INPATIENT) {
+      throw new IllegalStateException("Não é um episódio de internamento: " + id);
+    }
+    return episode;
+  }
+
+  private EpisodeResponse open(CreateEpisodeRequest request) {
     var user = requireHospitalUser();
     var patient =
         patients
@@ -135,6 +185,11 @@ public class EpisodeService {
   public EpisodeResponse reschedule(UUID id, RescheduleRequest request) {
     var user = requireHospitalUser();
     var episode = load(id);
+    if (request.type() == EpisodeType.INPATIENT) {
+      throw new BadRequestException(
+          "INPATIENT_VIA_ADMISSION",
+          "Os episódios de internamento abrem-se ao internar o paciente (módulo Internamento).");
+    }
     checkVersion(episode, request.version());
     validateDoctor(request.doctorId(), user);
     var before = toResponse(episode);
@@ -198,6 +253,7 @@ public class EpisodeService {
   public EpisodeResponse complete(UUID id) {
     var user = requireHospitalUser();
     var episode = load(id);
+    requireNotInpatient(episode);
     var before = toResponse(episode);
     episode.complete(user.id(), clock.instant());
     return saveAndAudit(episode, before, AuditAction.COMPLETE, "Episódio concluído: ");
@@ -211,6 +267,7 @@ public class EpisodeService {
   public EpisodeResponse cancel(UUID id, String reason) {
     var user = requireHospitalUser();
     var episode = load(id);
+    requireNotInpatient(episode);
     if (episode.getStatus() == EpisodeStatus.IN_PROGRESS && !user.hasRole(Role.DOCTOR)) {
       throw new ForbiddenException(
           "ACCESS_DENIED", "Só um médico pode cancelar um episódio já iniciado.");
@@ -250,6 +307,15 @@ public class EpisodeService {
       throw new ConflictException(
           "CONCURRENT_MODIFICATION",
           "O episódio foi alterado por outra pessoa. Actualize e tente novamente.");
+    }
+  }
+
+  /** O episódio de internamento fecha-se pela alta (ou anulação) do internamento. */
+  private static void requireNotInpatient(Episode episode) {
+    if (episode.getType() == EpisodeType.INPATIENT) {
+      throw new ConflictException(
+          "EPISODE_MANAGED_BY_ADMISSION",
+          "Este episódio pertence a um internamento: conclui-se com a alta no Internamento.");
     }
   }
 

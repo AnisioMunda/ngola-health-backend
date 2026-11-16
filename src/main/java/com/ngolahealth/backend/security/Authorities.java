@@ -92,5 +92,21 @@ public final class Authorities {
   public static final String APPOINTMENT_BOOKERS =
       "hasAnyRole('ADMIN', 'DOCTOR', 'NURSE', 'RECEPTIONIST')";
 
+  /** Consultam enfermarias, mapa de camas e internamentos. */
+  public static final String INPATIENT_READERS =
+      "hasAnyRole('ADMIN', 'MANAGER', 'DOCTOR', 'NURSE', 'RECEPTIONIST')";
+
+  /** Criam e editam enfermarias e camas. */
+  public static final String WARD_MANAGERS = "hasAnyRole('ADMIN', 'MANAGER')";
+
+  /** Marcam camas como limpas ou em manutenção. */
+  public static final String BED_KEEPERS = "hasAnyRole('ADMIN', 'MANAGER', 'NURSE')";
+
+  /** Internam, dão alta, anulam e mudam o médico responsável (acto médico). */
+  public static final String ADMITTERS = "hasRole('DOCTOR')";
+
+  /** Mudam o paciente de cama ou de enfermaria. */
+  public static final String BED_TRANSFERRERS = "hasAnyRole('DOCTOR', 'NURSE')";
+
   private Authorities() {}
 }

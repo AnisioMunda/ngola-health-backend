@@ -22,6 +22,8 @@ public enum AuditAction {
   NO_SHOW,
   RESCHEDULE,
   DELETE,
+  TRANSFER,
+  DISCHARGE,
   ACTIVATE,
   DEACTIVATE,
   LOGIN,

@@ -20,11 +20,23 @@ public class PatientDirectory {
   private final PatientRepository patients;
 
   public record PatientRef(
-      UUID id, String recordNumber, String fullName, boolean active, String phone) {
+      UUID id,
+      String recordNumber,
+      String fullName,
+      boolean active,
+      String phone,
+      com.ngolahealth.backend.modules.patients.domain.Gender gender,
+      java.time.LocalDate birthDate) {
 
     static PatientRef of(Patient p) {
       return new PatientRef(
-          p.getId(), p.getRecordNumber(), p.getFullName(), p.isActive(), p.getPhone());
+          p.getId(),
+          p.getRecordNumber(),
+          p.getFullName(),
+          p.isActive(),
+          p.getPhone(),
+          p.getGender(),
+          p.getBirthDate());
     }
   }
 
