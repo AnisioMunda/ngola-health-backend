@@ -46,4 +46,7 @@
     <!-- Módulo 12: Internamento -->
     <include file="changes/inpatient/001-create-inpatient.sql" relativeToChangelogFile="true"/>
 
+    <!-- Módulo 13: Financeiro -->
+    <include file="changes/financial/001-create-financial.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

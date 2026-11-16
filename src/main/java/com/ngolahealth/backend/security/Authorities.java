@@ -108,5 +108,18 @@ public final class Authorities {
   /** Mudam o paciente de cama ou de enfermaria. */
   public static final String BED_TRANSFERRERS = "hasAnyRole('DOCTOR', 'NURSE')";
 
+  /** Consultam documentos de facturação, preços e caixa. */
+  public static final String FINANCE_READERS =
+      "hasAnyRole('ADMIN', 'MANAGER', 'FINANCIAL', 'RECEPTIONIST')";
+
+  /** Preparam e emitem documentos e recebem pagamentos (caixa). */
+  public static final String BILLING_CLERKS = "hasAnyRole('ADMIN', 'FINANCIAL', 'RECEPTIONIST')";
+
+  /** Anulam documentos e emitem notas de crédito. */
+  public static final String FINANCE_SUPERVISORS = "hasAnyRole('ADMIN', 'FINANCIAL')";
+
+  /** Gerem a tabela de preços. */
+  public static final String PRICE_MANAGERS = "hasAnyRole('ADMIN', 'FINANCIAL')";
+
   private Authorities() {}
 }

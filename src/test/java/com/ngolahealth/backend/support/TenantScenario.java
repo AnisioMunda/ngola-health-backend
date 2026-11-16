@@ -60,6 +60,13 @@ public class TenantScenario {
       String id = h.toString();
       jdbc.update("DELETE FROM audit_events WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM notifications WHERE hospital_id = ?", id);
+      jdbc.update("DELETE FROM payments WHERE hospital_id = ?", id);
+      jdbc.update("DELETE FROM invoice_items WHERE hospital_id = ?", id);
+      jdbc.update(
+          "DELETE FROM invoices WHERE hospital_id = ? AND related_invoice_id IS NOT NULL", id);
+      jdbc.update("DELETE FROM invoices WHERE hospital_id = ?", id);
+      jdbc.update("DELETE FROM document_sequences WHERE hospital_id = ?", id);
+      jdbc.update("DELETE FROM service_prices WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM appointments WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM admission_transfers WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM admissions WHERE hospital_id = ?", id);

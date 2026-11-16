@@ -17,5 +17,7 @@ public enum AuditEntityType {
   WARD,
   BED,
   ADMISSION,
+  SERVICE_PRICE,
+  INVOICE,
   SYSTEM
 }
