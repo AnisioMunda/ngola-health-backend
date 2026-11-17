@@ -19,5 +19,8 @@ public enum AuditEntityType {
   ADMISSION,
   SERVICE_PRICE,
   INVOICE,
+  SHIFT,
+  LEAVE_REQUEST,
+  ATTENDANCE,
   SYSTEM
 }

@@ -121,5 +121,13 @@ public final class Authorities {
   /** Gerem a tabela de preços. */
   public static final String PRICE_MANAGERS = "hasAnyRole('ADMIN', 'FINANCIAL')";
 
+  /** Qualquer profissional de um hospital (self-service de escala, folgas e ponto). */
+  public static final String STAFF =
+      "hasAnyRole('ADMIN', 'MANAGER', 'DOCTOR', 'NURSE', 'RECEPTIONIST', 'PHARMACIST', 'FINANCIAL',"
+          + " 'LAB_TECHNICIAN')";
+
+  /** Fazem a escala, decidem ausências, corrigem o ponto e vêem os relatórios de RH. */
+  public static final String HR_MANAGERS = "hasAnyRole('ADMIN', 'MANAGER')";
+
   private Authorities() {}
 }

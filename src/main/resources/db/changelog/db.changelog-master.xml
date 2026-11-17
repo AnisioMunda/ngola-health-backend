@@ -49,4 +49,7 @@
     <!-- Módulo 13: Financeiro -->
     <include file="changes/financial/001-create-financial.sql" relativeToChangelogFile="true"/>
 
+    <!-- Módulo 14: Recursos humanos -->
+    <include file="changes/hr/001-create-hr.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

@@ -18,5 +18,9 @@ public enum NotificationType {
   AGENDA_REMINDER,
   /** O médico ficou responsável por um internamento (ao internar ou por mudança). */
   INPATIENT_ASSIGNED,
+  /** Novo pedido de ausência por decidir (gestores). */
+  LEAVE_REQUESTED,
+  /** O pedido de ausência foi aprovado ou recusado (requerente). */
+  LEAVE_DECIDED,
   SYSTEM
 }

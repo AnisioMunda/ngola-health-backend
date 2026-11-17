@@ -341,7 +341,7 @@ public class InvoiceService {
             .collect(Collectors.toSet());
     var catalog =
         ids.isEmpty()
-            ? java.util.Map.<UUID, ServicePrice>of()
+            ? java.util.Collections.<UUID, ServicePrice>emptyMap()
             : prices.findAllScoped(ids).stream()
                 .collect(Collectors.toMap(ServicePrice::getId, Function.identity()));
     var result = new ArrayList<LineInput>();

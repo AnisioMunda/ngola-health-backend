@@ -309,7 +309,7 @@ public class UserService {
   private UserResponse toResponse(User user) {
     var names =
         user.getHospitalId() == null
-            ? Map.<UUID, String>of()
+            ? java.util.Collections.<UUID, String>emptyMap()
             : hospitals.findNames(Set.of(user.getHospitalId()));
     return toResponse(user, names);
   }

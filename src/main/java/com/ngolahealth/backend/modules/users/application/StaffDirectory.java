@@ -43,6 +43,18 @@ public class StaffDirectory {
     return users.findActiveByHospitalAndRole(hospitalId, role).stream().map(StaffRef::of).toList();
   }
 
+  /** Profissional com os seus perfis (para escalas e listas de pessoal). */
+  public record StaffMember(UUID id, String fullName, java.util.Set<Role> roles) {}
+
+  /** Todos os profissionais activos do hospital (exclui contas de paciente). */
+  @Transactional(readOnly = true)
+  public List<StaffMember> listStaff(UUID hospitalId) {
+    return users.findActiveByHospital(hospitalId).stream()
+        .filter(u -> u.getRoles().stream().anyMatch(r -> r != Role.PATIENT))
+        .map(u -> new StaffMember(u.getId(), u.getFullName(), java.util.Set.copyOf(u.getRoles())))
+        .toList();
+  }
+
   /** Dos utilizadores indicados, os que estão activos no hospital (destinatários válidos). */
   @Transactional(readOnly = true)
   public java.util.Set<UUID> activeIn(UUID hospitalId, Collection<UUID> ids) {
@@ -61,7 +73,7 @@ public class StaffDirectory {
   public Map<UUID, String> names(Collection<UUID> ids) {
     var wanted = ids.stream().filter(Objects::nonNull).collect(Collectors.toSet());
     if (wanted.isEmpty()) {
-      return Map.of();
+      return java.util.Collections.emptyMap();
     }
     return users.findAllById(wanted).stream()
         .collect(Collectors.toMap(User::getId, User::getFullName));

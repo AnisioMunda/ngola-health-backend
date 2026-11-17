@@ -337,7 +337,7 @@ public class TriageService {
     var names = staff.names(people);
     var patientRefs =
         t.getPatientId() == null
-            ? Map.<UUID, PatientRef>of()
+            ? java.util.Collections.<UUID, PatientRef>emptyMap()
             : patients.findAll(List.of(t.getPatientId()));
     var history =
         changes.stream()

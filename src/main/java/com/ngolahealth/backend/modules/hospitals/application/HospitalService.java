@@ -78,7 +78,7 @@ public class HospitalService {
   @Transactional(readOnly = true)
   public Map<UUID, String> findNames(Collection<UUID> ids) {
     if (ids.isEmpty()) {
-      return Map.of();
+      return java.util.Collections.emptyMap();
     }
     return repository.findAllById(ids).stream()
         .collect(Collectors.toMap(Hospital::getId, Hospital::getName));

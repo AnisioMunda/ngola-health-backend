@@ -423,12 +423,12 @@ public class AdmissionService {
                     }));
     Map<UUID, String> bedCodes =
         bedIds.isEmpty()
-            ? Map.of()
+            ? java.util.Collections.emptyMap()
             : beds.findAllScoped(bedIds).stream()
                 .collect(Collectors.toMap(Bed::getId, Bed::getCode));
     Map<UUID, String> wardNames =
         wardIds.isEmpty()
-            ? Map.of()
+            ? java.util.Collections.emptyMap()
             : wards.findAllScoped(wardIds).stream()
                 .collect(Collectors.toMap(Ward::getId, Ward::getName));
     var names = staff.names(people);

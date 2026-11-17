@@ -48,7 +48,7 @@ public class PatientDirectory {
   @Transactional(readOnly = true)
   public Map<UUID, PatientRef> findAll(Collection<UUID> ids) {
     if (ids.isEmpty()) {
-      return Map.of();
+      return java.util.Collections.emptyMap();
     }
     return patients.findAllScoped(ids).stream()
         .map(PatientRef::of)

@@ -319,7 +319,7 @@ public class LabRequestService {
         withAmendments && !itemIds.isEmpty()
             ? amendments.findByItems(itemIds).stream()
                 .collect(Collectors.groupingBy(ResultAmendment::getItemId))
-            : Map.<UUID, List<ResultAmendment>>of();
+            : java.util.Collections.<UUID, List<ResultAmendment>>emptyMap();
     Set<UUID> people = new HashSet<>();
     for (var r : list) {
       Stream.of(r.getRequestedBy(), r.getCollectedBy(), r.getCancelledBy())

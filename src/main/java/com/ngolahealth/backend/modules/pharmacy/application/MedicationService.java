@@ -121,7 +121,7 @@ public class MedicationService {
   @Transactional(readOnly = true)
   public Map<UUID, MedicationResponse> findByIds(java.util.Collection<UUID> ids) {
     if (ids.isEmpty()) {
-      return Map.of();
+      return java.util.Collections.emptyMap();
     }
     var list = medications.findAllScoped(ids);
     var stock = stockInfo(list.stream().map(Medication::getId).toList());
