@@ -132,5 +132,12 @@ public final class Authorities {
   /** Gerem o inventário de equipamentos, manutenções e abates. */
   public static final String EQUIPMENT_MANAGERS = "hasAnyRole('ADMIN', 'MANAGER')";
 
+  /** Vêem o dashboard executivo e os relatórios de ocupação. */
+  public static final String REPORT_READERS = "hasAnyRole('ADMIN', 'MANAGER')";
+
+  /** Vêem os relatórios financeiros. */
+  public static final String FINANCIAL_REPORT_READERS =
+      "hasAnyRole('ADMIN', 'MANAGER', 'FINANCIAL')";
+
   private Authorities() {}
 }
