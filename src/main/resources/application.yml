@@ -97,6 +97,9 @@ app:
     max-days-ahead: 180
     # Resumo da agenda de amanhã para cada médico (hora local de app.time-zone).
     reminder-cron: "0 0 18 * * *"
+  equipment:
+    # Resumo diário de manutenções/calibrações vencidas ou a vencer (hora local de app.time-zone).
+    due-cron: "0 0 7 * * *"
 
 management:
   endpoints:

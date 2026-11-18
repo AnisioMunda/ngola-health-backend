@@ -52,4 +52,7 @@
     <!-- Módulo 14: Recursos humanos -->
     <include file="changes/hr/001-create-hr.sql" relativeToChangelogFile="true"/>
 
+    <!-- Módulo 15: Equipamentos -->
+    <include file="changes/equipment/001-create-equipment.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

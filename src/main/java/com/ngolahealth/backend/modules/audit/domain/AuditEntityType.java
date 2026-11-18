@@ -22,5 +22,6 @@ public enum AuditEntityType {
   SHIFT,
   LEAVE_REQUEST,
   ATTENDANCE,
+  EQUIPMENT,
   SYSTEM
 }

@@ -129,5 +129,8 @@ public final class Authorities {
   /** Fazem a escala, decidem ausências, corrigem o ponto e vêem os relatórios de RH. */
   public static final String HR_MANAGERS = "hasAnyRole('ADMIN', 'MANAGER')";
 
+  /** Gerem o inventário de equipamentos, manutenções e abates. */
+  public static final String EQUIPMENT_MANAGERS = "hasAnyRole('ADMIN', 'MANAGER')";
+
   private Authorities() {}
 }

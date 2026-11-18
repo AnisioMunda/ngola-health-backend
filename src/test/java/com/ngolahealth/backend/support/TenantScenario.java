@@ -60,6 +60,9 @@ public class TenantScenario {
       String id = h.toString();
       jdbc.update("DELETE FROM audit_events WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM notifications WHERE hospital_id = ?", id);
+      jdbc.update("DELETE FROM maintenance_records WHERE hospital_id = ?", id);
+      jdbc.update("DELETE FROM equipment_faults WHERE hospital_id = ?", id);
+      jdbc.update("DELETE FROM equipment WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM attendance_records WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM leave_requests WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM shifts WHERE hospital_id = ?", id);

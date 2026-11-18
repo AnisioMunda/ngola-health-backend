@@ -22,5 +22,9 @@ public enum NotificationType {
   LEAVE_REQUESTED,
   /** O pedido de ausência foi aprovado ou recusado (requerente). */
   LEAVE_DECIDED,
+  /** Avaria reportada num equipamento (gestores). */
+  EQUIPMENT_FAULT,
+  /** Resumo diário de manutenções e calibrações vencidas ou a vencer. */
+  EQUIPMENT_DUE,
   SYSTEM
 }
