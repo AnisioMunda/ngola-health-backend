@@ -145,6 +145,8 @@ app:
   dev:
     # Senha inicial dos utilizadores de demonstração (platform-admin, admin.hcl). Vazio = não criar.
     admin-password: ${DEV_ADMIN_PASSWORD:}
+    # Cria o "Hospital Demo Ngola" com 30 dias de actividade (uma só vez). Activar com DEMO_DATA=true no .env.
+    demo-data: ${DEMO_DATA:false}
 
 logging:
   level:
