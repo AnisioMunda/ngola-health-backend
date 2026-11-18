@@ -2,6 +2,7 @@ package com.ngolahealth.backend.config;
 
 import com.ngolahealth.backend.config.properties.AppProperties;
 import com.ngolahealth.backend.security.PasswordChangeRequiredFilter;
+import com.ngolahealth.backend.security.PortalAudienceFilter;
 import com.ngolahealth.backend.security.ProblemJsonSecurityHandler;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +36,13 @@ public class SecurityConfig {
 
   /** Endpoints acessíveis sem autenticação. */
   static final String[] PUBLIC_ENDPOINTS = {
-    "/actuator/health", "/actuator/info", "/error", "/auth/login", "/auth/refresh", "/auth/logout"
+    "/actuator/health",
+    "/actuator/info",
+    "/error",
+    "/auth/login",
+    "/auth/refresh",
+    "/auth/logout",
+    "/portal/activate"
   };
 
   /** Documentação da API; só fica activa no perfil dev (ver application.yml). */
@@ -73,6 +80,9 @@ public class SecurityConfig {
         .addFilterAfter(
             new PasswordChangeRequiredFilter(problemJsonSecurityHandler),
             BearerTokenAuthenticationFilter.class)
+        .addFilterAfter(
+            new PortalAudienceFilter(problemJsonSecurityHandler),
+            PasswordChangeRequiredFilter.class)
         .exceptionHandling(
             ex ->
                 ex.authenticationEntryPoint(problemJsonSecurityHandler)

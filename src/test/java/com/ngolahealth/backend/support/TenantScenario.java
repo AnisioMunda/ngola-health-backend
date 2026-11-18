@@ -60,6 +60,7 @@ public class TenantScenario {
       String id = h.toString();
       jdbc.update("DELETE FROM audit_events WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM notifications WHERE hospital_id = ?", id);
+      jdbc.update("DELETE FROM portal_activation_codes WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM maintenance_records WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM equipment_faults WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM equipment WHERE hospital_id = ?", id);
@@ -96,6 +97,19 @@ public class TenantScenario {
       jdbc.update("DELETE FROM triage_records WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM triage_queue_sequences WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM episodes WHERE hospital_id = ?", id);
+      jdbc.update(
+          "DELETE FROM audit_events WHERE actor_id IN (SELECT id FROM users WHERE hospital_id = ? AND patient_id IS NOT NULL)",
+          id);
+      jdbc.update(
+          "DELETE FROM user_sessions WHERE user_id IN (SELECT id FROM users WHERE hospital_id = ? AND patient_id IS NOT NULL)",
+          id);
+      jdbc.update(
+          "DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE hospital_id = ? AND patient_id IS NOT NULL)",
+          id);
+      jdbc.update(
+          "DELETE FROM notifications WHERE recipient_id IN (SELECT id FROM users WHERE hospital_id = ? AND patient_id IS NOT NULL)",
+          id);
+      jdbc.update("DELETE FROM users WHERE hospital_id = ? AND patient_id IS NOT NULL", id);
       jdbc.update("DELETE FROM patients WHERE hospital_id = ?", id);
       jdbc.update("DELETE FROM patient_record_sequences WHERE hospital_id = ?", id);
     }

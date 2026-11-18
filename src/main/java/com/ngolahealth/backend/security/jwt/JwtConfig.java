@@ -21,7 +21,12 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 @Configuration
 public class JwtConfig {
 
+  /** Audiência dos tokens do pessoal do hospital. */
   public static final String AUDIENCE = "ngolahealth-api";
+
+  /** Audiência dos tokens do portal do paciente: não servem na API do pessoal (e vice-versa). */
+  public static final String PORTAL_AUDIENCE = "ngolahealth-portal";
+
   public static final String SESSION_CLAIM = "sid";
 
   @Bean
@@ -37,7 +42,11 @@ public class JwtConfig {
             .build();
     OAuth2TokenValidator<Jwt> audience =
         new JwtClaimValidator<java.util.List<String>>(
-            "aud", aud -> aud != null && aud.contains(AUDIENCE));
+            "aud",
+            aud ->
+                aud != null
+                    && aud.size() == 1
+                    && (aud.contains(AUDIENCE) || aud.contains(PORTAL_AUDIENCE)));
     OAuth2TokenValidator<Jwt> session =
         new JwtClaimValidator<String>(SESSION_CLAIM, sid -> sid != null && !sid.isBlank());
     decoder.setJwtValidator(

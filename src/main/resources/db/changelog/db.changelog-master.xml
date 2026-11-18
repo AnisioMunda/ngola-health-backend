@@ -55,4 +55,7 @@
     <!-- Módulo 15: Equipamentos -->
     <include file="changes/equipment/001-create-equipment.sql" relativeToChangelogFile="true"/>
 
+    <!-- Módulo 17: Portal do paciente -->
+    <include file="changes/portal/001-create-portal.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

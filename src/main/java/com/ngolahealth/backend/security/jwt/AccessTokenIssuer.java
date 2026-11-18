@@ -35,7 +35,11 @@ public class AccessTokenIssuer {
     var claims =
         JwtClaimsSet.builder()
             .issuer(properties.issuer())
-            .audience(List.of(JwtConfig.AUDIENCE))
+            .audience(
+                List.of(
+                    roles.equals(Set.of(Role.PATIENT))
+                        ? JwtConfig.PORTAL_AUDIENCE
+                        : JwtConfig.AUDIENCE))
             .subject(userId.toString())
             .issuedAt(now)
             .expiresAt(expiresAt)

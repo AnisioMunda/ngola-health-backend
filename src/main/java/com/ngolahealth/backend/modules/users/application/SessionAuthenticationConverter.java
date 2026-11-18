@@ -53,6 +53,12 @@ public class SessionAuthenticationConverter implements Converter<Jwt, AbstractAu
             .orElse(false)) {
       throw invalid("Hospital inactivo.");
     }
+    // A audiência do token tem de corresponder ao tipo de conta (portal ⇔ conta de doente).
+    boolean portalToken = jwt.getAudience().contains(JwtConfig.PORTAL_AUDIENCE);
+    boolean portalAccount = user.getPatientId() != null;
+    if (portalToken != portalAccount) {
+      throw invalid("Token não corresponde ao tipo de conta.");
+    }
     return new UserAuthentication(
         new CurrentUser(
             user.getId(),
@@ -61,7 +67,8 @@ public class SessionAuthenticationConverter implements Converter<Jwt, AbstractAu
             user.getHospitalId(),
             user.getRoles(),
             sessionId,
-            user.isMustChangePassword()));
+            user.isMustChangePassword(),
+            user.getPatientId()));
   }
 
   private static UUID parse(String value) {

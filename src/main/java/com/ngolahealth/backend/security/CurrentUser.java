@@ -9,6 +9,7 @@ import java.util.UUID;
  *
  * @param hospitalId hospital do utilizador; null para SUPER_ADMIN
  * @param sessionId sessão de login a que o token pertence
+ * @param patientId ficha do doente, nas contas do portal; null para o pessoal
  */
 public record CurrentUser(
     UUID id,
@@ -17,7 +18,13 @@ public record CurrentUser(
     UUID hospitalId,
     Set<Role> roles,
     UUID sessionId,
-    boolean mustChangePassword) {
+    boolean mustChangePassword,
+    UUID patientId) {
+
+  /** Conta do portal do paciente (token com a audiência do portal). */
+  public boolean isPortal() {
+    return patientId != null;
+  }
 
   public boolean hasRole(Role role) {
     return roles.contains(role);

@@ -51,6 +51,10 @@ public class User {
   @Column(nullable = false, unique = true, length = 200)
   private String email;
 
+  /** Ficha do doente, nas contas do portal (perfil PATIENT); null para o pessoal. */
+  @Column(name = "patient_id", updatable = false, length = 36)
+  private UUID patientId;
+
   @Column(name = "password_hash", nullable = false, length = 100)
   private String passwordHash;
 
@@ -110,6 +114,30 @@ public class User {
     this.hospitalId = hospitalId;
     this.roles = EnumSet.copyOf(roles);
     apply(profile);
+  }
+
+  /**
+   * Conta do portal: perfil PATIENT, ligada à ficha do doente, com a senha escolhida pelo próprio
+   * na activação (não há troca obrigatória).
+   */
+  public static User forPatient(
+      String username,
+      String passwordHash,
+      String fullName,
+      String email,
+      UUID hospitalId,
+      UUID patientId,
+      Instant now) {
+    var user =
+        new User(
+            username,
+            passwordHash,
+            new UserProfile(fullName, email, null, null, null),
+            hospitalId,
+            EnumSet.of(Role.PATIENT));
+    user.patientId = patientId;
+    user.changePassword(passwordHash, now);
+    return user;
   }
 
   public void apply(UserProfile profile) {
