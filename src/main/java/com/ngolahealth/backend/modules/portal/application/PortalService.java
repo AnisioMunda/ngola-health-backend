@@ -5,15 +5,12 @@ import com.ngolahealth.backend.common.exception.NotFoundException;
 import com.ngolahealth.backend.config.properties.AppProperties;
 import com.ngolahealth.backend.modules.episodes.application.EpisodeService;
 import com.ngolahealth.backend.modules.episodes.application.EpisodeService.EpisodeSearch;
-import com.ngolahealth.backend.modules.financial.application.InvoiceService;
-import com.ngolahealth.backend.modules.financial.domain.InvoiceStatus;
 import com.ngolahealth.backend.modules.hospitals.application.HospitalService;
 import com.ngolahealth.backend.modules.laboratory.api.LabDtos.ItemResponse;
 import com.ngolahealth.backend.modules.laboratory.application.LabRequestService;
 import com.ngolahealth.backend.modules.laboratory.domain.ItemStatus;
 import com.ngolahealth.backend.modules.patients.application.PatientService;
 import com.ngolahealth.backend.modules.portal.api.PortalDtos.PortalAppointment;
-import com.ngolahealth.backend.modules.portal.api.PortalDtos.PortalInvoice;
 import com.ngolahealth.backend.modules.portal.api.PortalDtos.PortalLabRequest;
 import com.ngolahealth.backend.modules.portal.api.PortalDtos.PortalPrescription;
 import com.ngolahealth.backend.modules.portal.api.PortalDtos.PortalPrescriptionItem;
@@ -24,7 +21,6 @@ import com.ngolahealth.backend.modules.prescriptions.application.PrescriptionSer
 import com.ngolahealth.backend.modules.scheduling.api.SchedulingDtos.AppointmentResponse;
 import com.ngolahealth.backend.modules.scheduling.application.AppointmentService;
 import com.ngolahealth.backend.security.CurrentUserProvider;
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -47,7 +43,6 @@ public class PortalService {
   private final AppointmentService appointments;
   private final LabRequestService lab;
   private final PrescriptionService prescriptions;
-  private final InvoiceService invoices;
   private final EpisodeService episodes;
   private final AppProperties app;
   private final Clock clock;
@@ -164,27 +159,6 @@ public class PortalService {
                                             .toList()),
                                     i.remaining() == 0 ? "DISPENSED" : "PENDING"))
                         .toList()))
-        .toList();
-  }
-
-  /** Documentos emitidos (nunca rascunhos). */
-  public List<PortalInvoice> invoices() {
-    return invoices
-        .search(null, null, patientId(), null, null, null, null, 0, 100)
-        .content()
-        .stream()
-        .filter(i -> i.status() != InvoiceStatus.DRAFT)
-        .map(
-            i ->
-                new PortalInvoice(
-                    i.id(),
-                    i.documentType().name(),
-                    i.number(),
-                    i.status().name(),
-                    i.issuedAt(),
-                    i.grossTotal(),
-                    i.documentType().name().equals("NC") ? BigDecimal.ZERO : i.balance(),
-                    i.dueDate()))
         .toList();
   }
 

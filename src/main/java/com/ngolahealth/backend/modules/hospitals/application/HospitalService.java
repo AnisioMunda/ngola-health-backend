@@ -60,21 +60,6 @@ public class HospitalService {
   }
 
   /** Nomes dos hospitais indicados, para enriquecer listagens de outros módulos. */
-  /** Emitente para a facturação: nome, NIF e morada completa. */
-  @Transactional(readOnly = true)
-  public Optional<HospitalFiscalProfile> fiscalProfile(UUID id) {
-    return repository
-        .findById(id)
-        .map(
-            h ->
-                new HospitalFiscalProfile(
-                    h.getName(),
-                    h.getTaxId(),
-                    java.util.stream.Stream.of(h.getAddress(), h.getMunicipality(), h.getProvince())
-                        .filter(v -> v != null && !v.isBlank())
-                        .collect(java.util.stream.Collectors.joining(", "))));
-  }
-
   @Transactional(readOnly = true)
   public Map<UUID, String> findNames(Collection<UUID> ids) {
     if (ids.isEmpty()) {

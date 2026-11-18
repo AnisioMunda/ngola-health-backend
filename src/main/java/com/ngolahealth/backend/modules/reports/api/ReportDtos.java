@@ -1,6 +1,5 @@
 package com.ngolahealth.backend.modules.reports.api;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -47,22 +46,7 @@ public final class ReportDtos {
 
   public record PharmacyStats(long lowStock, long expiringIn30Days, long expiredWithBalance) {}
 
-  /**
-   * @param invoiced facturas e facturas-recibo emitidas no período (não anuladas)
-   * @param credited notas de crédito emitidas no período
-   * @param received pagamentos recebidos no período
-   * @param outstanding saldo em dívida hoje (todas as facturas por pagar)
-   */
-  public record FinanceStats(
-      BigDecimal invoiced,
-      BigDecimal credited,
-      BigDecimal net,
-      BigDecimal received,
-      BigDecimal outstanding,
-      long documents) {}
-
-  public record DayPoint(
-      LocalDate date, long episodes, long admissions, long triage, BigDecimal revenue) {}
+  public record DayPoint(LocalDate date, long episodes, long admissions, long triage) {}
 
   public record Dashboard(
       LocalDate from,
@@ -74,7 +58,6 @@ public final class ReportDtos {
       InpatientStats inpatient,
       LabStats lab,
       PharmacyStats pharmacy,
-      FinanceStats finance,
       List<DayPoint> daily) {}
 
   // ---------- Ocupação ----------
@@ -97,19 +80,4 @@ public final class ReportDtos {
 
   public record OccupancyReport(
       LocalDate from, LocalDate to, long days, List<WardOccupancy> wards, WardOccupancy total) {}
-
-  // ---------- Financeiro ----------
-
-  public record Amount(String key, BigDecimal amount, long count) {}
-
-  public record FinancialDay(LocalDate date, BigDecimal invoiced, BigDecimal received) {}
-
-  public record FinancialReport(
-      LocalDate from,
-      LocalDate to,
-      FinanceStats summary,
-      List<Amount> byPaymentMethod,
-      List<Amount> byCategory,
-      List<Amount> topServices,
-      List<FinancialDay> daily) {}
 }

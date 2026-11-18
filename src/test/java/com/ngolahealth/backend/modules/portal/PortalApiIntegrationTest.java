@@ -193,14 +193,6 @@ class PortalApiIntegrationTest {
             put("/lab/requests/" + request + "/items/" + geItem + "/result"),
             "{\"textValue\":\"Positivo\",\"abnormal\":true}"),
         lab);
-    // Um rascunho de factura para a Ana (não deve aparecer) e uma factura-recibo emitida para o
-    // Rui.
-    jdbc.update("UPDATE hospitals SET tax_id = '5417000003' WHERE id = ?", hospital.toString());
-    id(perform(json(post("/financial/invoices"), invoice(ana, "FT")), reception));
-    String ruiFr = id(perform(json(post("/financial/invoices"), invoice(rui, "FR")), reception));
-    perform(
-        json(post("/financial/invoices/" + ruiFr + "/issue"), "{\"paymentMethod\":\"CASH\"}"),
-        reception);
 
     var patient = activateAndLogin(ana, "1990-05-01", "ana.portal");
     perform(get("/portal/lab-results"), patient)
@@ -211,7 +203,6 @@ class PortalApiIntegrationTest {
         .andExpect(jsonPath("$[0].results[0].flag").value("LOW"))
         .andExpect(jsonPath("$[0].results[0].reference").value("12–16"))
         .andExpect(jsonPath("$[0].pending").value(1));
-    perform(get("/portal/invoices"), patient).andExpect(jsonPath("$.length()").value(0));
     perform(get("/portal/visits"), patient)
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].status").value("IN_PROGRESS"));
@@ -328,12 +319,6 @@ class PortalApiIntegrationTest {
                 {"code":"%s","name":"%s","category":"HEMATOLOGY","sampleType":"BLOOD","resultType":"%s",%s,"turnaroundHours":24}"""
                     .formatted(code, name, type, extra)),
             lab));
-  }
-
-  private static String invoice(String patient, String type) {
-    return """
-        {"documentType":"%s","patientId":"%s","lines":[{"description":"Consulta","quantity":1,"unitPrice":5000,"vatRate":0,"vatExemptionReason":"Isento"}]}"""
-        .formatted(type, patient);
   }
 
   private static String id(ResultActions result) throws Exception {

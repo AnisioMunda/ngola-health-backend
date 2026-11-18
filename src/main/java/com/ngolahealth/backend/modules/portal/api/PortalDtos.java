@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -96,16 +95,6 @@ public final class PortalDtos {
       String status,
       LocalDate validUntil,
       List<PortalPrescriptionItem> items) {}
-
-  public record PortalInvoice(
-      UUID id,
-      String documentType,
-      String number,
-      String status,
-      Instant issuedAt,
-      BigDecimal total,
-      BigDecimal balance,
-      LocalDate dueDate) {}
 
   public record PortalVisit(
       UUID id, Instant date, String type, String status, String doctorName, String reason) {}

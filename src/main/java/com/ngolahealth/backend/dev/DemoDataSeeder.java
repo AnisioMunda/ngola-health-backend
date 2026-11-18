@@ -15,16 +15,6 @@ import com.ngolahealth.backend.modules.equipment.domain.Criticality;
 import com.ngolahealth.backend.modules.equipment.domain.EquipmentCategory;
 import com.ngolahealth.backend.modules.equipment.domain.MaintenanceResult;
 import com.ngolahealth.backend.modules.equipment.domain.MaintenanceType;
-import com.ngolahealth.backend.modules.financial.api.FinancialDtos.InvoiceRequest;
-import com.ngolahealth.backend.modules.financial.api.FinancialDtos.IssueRequest;
-import com.ngolahealth.backend.modules.financial.api.FinancialDtos.LineRequest;
-import com.ngolahealth.backend.modules.financial.api.FinancialDtos.PaymentRequest;
-import com.ngolahealth.backend.modules.financial.api.FinancialDtos.ServicePriceRequest;
-import com.ngolahealth.backend.modules.financial.application.InvoiceService;
-import com.ngolahealth.backend.modules.financial.application.PriceService;
-import com.ngolahealth.backend.modules.financial.domain.DocumentType;
-import com.ngolahealth.backend.modules.financial.domain.PaymentMethod;
-import com.ngolahealth.backend.modules.financial.domain.ServiceCategory;
 import com.ngolahealth.backend.modules.hospitals.api.HospitalRequest;
 import com.ngolahealth.backend.modules.hospitals.application.HospitalService;
 import com.ngolahealth.backend.modules.hospitals.domain.HospitalType;
@@ -110,7 +100,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Dados de demonstração (só perfil dev, e só com {@code DEMO_DATA=true}): um hospital completo com
- * pessoal, doentes, 30 dias de actividade e o dia de hoje em curso.
+ * pessoal, doentes, 30 dias de actividade clínica e o dia de hoje em curso.
  *
  * <p>Tudo é criado pelos serviços da aplicação, como num uso real (numeração, stock, camas,
  * auditoria e notificações coerentes). Depois, as datas da actividade passada são recuadas para os
@@ -139,8 +129,6 @@ public class DemoDataSeeder implements ApplicationRunner {
   private final MedicationService medications;
   private final StockService stock;
   private final PrescriptionService prescriptions;
-  private final PriceService prices;
-  private final InvoiceService invoices;
   private final WardService wards;
   private final AdmissionService admissions;
   private final ScheduleService schedules;
@@ -167,7 +155,6 @@ public class DemoDataSeeder implements ApplicationRunner {
   private final Map<UUID, Gender> genders = new HashMap<>();
   private final Map<String, UUID> labTestIds = new HashMap<>();
   private final List<UUID> medicationIds = new ArrayList<>();
-  private final Map<String, UUID> priceIds = new HashMap<>();
   private final Map<GenderPolicy, List<UUID>> wardsByPolicy = new HashMap<>();
   private final Map<UUID, List<UUID>> bedsByWard = new HashMap<>();
 
@@ -236,7 +223,6 @@ public class DemoDataSeeder implements ApplicationRunner {
     staffUser("recepcao.demo", "Celeste Recepção", Role.RECEPTIONIST, null);
     staffUser("farmacia.demo", "Dr. Bento Farmácia", Role.PHARMACIST, null);
     staffUser("lab.demo", "Téc. Lurdes Laboratório", Role.LAB_TECHNICIAN, null);
-    staffUser("financeiro.demo", "Fernando Finanças", Role.FINANCIAL, null);
   }
 
   private void staffUser(String username, String name, Role role, String specialty) {
@@ -432,24 +418,6 @@ public class DemoDataSeeder implements ApplicationRunner {
                     120,
                     new BigDecimal("15.00"),
                     "Medicamentos de Angola, Lda")));
-
-    var finance = first(Role.FINANCIAL);
-    DemoRunAs.run(
-        finance,
-        () -> {
-          price("CONS-GERAL", "Consulta de clínica geral", ServiceCategory.CONSULTATION, "5000");
-          price("CONS-URG", "Atendimento de urgência", ServiceCategory.CONSULTATION, "8000");
-          price("CONS-PED", "Consulta de pediatria", ServiceCategory.CONSULTATION, "6000");
-          price("LAB-HEMO", "Hemograma", ServiceCategory.LAB, "3500");
-          price("LAB-GE", "Pesquisa de plasmódio (gota espessa)", ServiceCategory.LAB, "2000");
-          price("LAB-BIOQ", "Bioquímica (glicemia + creatinina)", ServiceCategory.LAB, "4500");
-          price(
-              "INT-DIA",
-              "Diária de internamento (enfermaria)",
-              ServiceCategory.ACCOMMODATION,
-              "15000");
-          price("PROC-PENSO", "Penso simples", ServiceCategory.PROCEDURE, "2500");
-        });
   }
 
   private void labTest(
@@ -497,20 +465,6 @@ public class DemoDataSeeder implements ApplicationRunner {
             stockQty,
             new BigDecimal(20 + random.nextInt(400)),
             "CECOMA"));
-  }
-
-  private void price(String code, String description, ServiceCategory category, String amount) {
-    var p =
-        prices.create(
-            new ServicePriceRequest(
-                code,
-                description,
-                category,
-                new BigDecimal(amount),
-                BigDecimal.ZERO,
-                "Isento — serviços de saúde (CIVA)",
-                null));
-    priceIds.put(code, p.id());
   }
 
   // ---------- Enfermarias ----------
@@ -586,7 +540,7 @@ public class DemoDataSeeder implements ApplicationRunner {
     jdbc.update("DELETE FROM triage_queue_sequences WHERE hospital_id = ?", hospitalId.toString());
   }
 
-  /** Urgência completa: triagem → episódio → (exames) → (receita) → alta → factura-recibo. */
+  /** Urgência completa: triagem → episódio → (exames) → (receita) → alta. */
   private void visit(int daysAgo, int index) {
     var patientId = patientIds.get(6 + random.nextInt(patientIds.size() - 6));
     var kase = pick(DemoNames.CASES);
@@ -628,7 +582,6 @@ public class DemoDataSeeder implements ApplicationRunner {
                 episodeId,
                 new ClinicalNotesRequest(kase[0], kase[1], "Medicado e orientado.", null)));
     DemoRunAs.run(doctor, () -> episodes.complete(episodeId));
-    var invoiceId = invoiceFlow(patientId, episodeId, labRequestId != null, daysAgo);
 
     // Recua as datas para o dia certo (hora do dia variável) e dá uma espera realista à triagem.
     long shiftSeconds = daysAgo * 86_400L - (7 + index * 2 + random.nextInt(2)) * 3_600L;
@@ -689,11 +642,6 @@ public class DemoDataSeeder implements ApplicationRunner {
           daysAgo,
           prescriptionId.toString());
     }
-    back("invoices", invoiceId, shiftSeconds - 7_000L, "created_at", "issued_at", "updated_at");
-    jdbc.update(
-        "UPDATE payments SET received_at = DATE_SUB(received_at, INTERVAL ? SECOND) WHERE invoice_id = ?",
-        shiftSeconds - 7_000L,
-        invoiceId.toString());
   }
 
   private UUID labFlow(UUID episodeId, Actor doctor, String diagnosis) {
@@ -763,63 +711,6 @@ public class DemoDataSeeder implements ApplicationRunner {
                       .toList()));
     }
     return rx.id();
-  }
-
-  private UUID invoiceFlow(UUID patientId, UUID episodeId, boolean withLab, int daysAgo) {
-    var reception = first(Role.RECEPTIONIST);
-    var lines = new ArrayList<LineRequest>();
-    lines.add(
-        new LineRequest(priceIds.get("CONS-URG"), null, BigDecimal.ONE, null, null, null, null));
-    if (withLab) {
-      lines.add(
-          new LineRequest(priceIds.get("LAB-HEMO"), null, BigDecimal.ONE, null, null, null, null));
-    }
-    // Um terço em factura (paga depois, às vezes em parte); o resto em factura-recibo.
-    boolean ft = daysAgo % 3 == 0;
-    var draft =
-        DemoRunAs.as(
-            reception,
-            () ->
-                invoices.create(
-                    new InvoiceRequest(
-                        ft ? DocumentType.FT : DocumentType.FR,
-                        patientId,
-                        episodeId,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        lines,
-                        null)));
-    if (ft) {
-      var issued = DemoRunAs.as(reception, () -> invoices.issue(draft.id(), null));
-      if (random.nextBoolean()) {
-        var half = issued.grossTotal().divide(BigDecimal.valueOf(2));
-        DemoRunAs.run(
-            reception,
-            () -> invoices.pay(draft.id(), new PaymentRequest(half, PaymentMethod.CASH, null)));
-      }
-    } else {
-      var method =
-          pick(
-              List.of(
-                  PaymentMethod.CASH,
-                  PaymentMethod.CARD,
-                  PaymentMethod.MULTICAIXA_EXPRESS,
-                  PaymentMethod.CASH));
-      DemoRunAs.run(
-          reception,
-          () ->
-              invoices.issue(
-                  draft.id(),
-                  new IssueRequest(
-                      method,
-                      method == PaymentMethod.CASH
-                          ? null
-                          : "REF" + (10000 + random.nextInt(89999)))));
-    }
-    return draft.id();
   }
 
   /** Internamento com início há {@code daysAgo} dias; alta se a estadia já terminou. */

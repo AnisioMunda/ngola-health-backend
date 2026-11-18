@@ -34,8 +34,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 /**
  * Indicadores calculados sobre dados reais criados pela API: triagem (tempo-alvo), internamento
- * (dias-cama por enfermaria seguindo transferências), financeiro; isolamento entre hospitais e
- * permissões.
+ * (dias-cama por enfermaria seguindo transferências), isolamento entre hospitais e permissões.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -84,6 +83,13 @@ class ReportsApiIntegrationTest {
     perform(patch("/triage/" + yellow + "/call"), nurse).andExpect(status().isOk());
     clock.advance(Duration.ofMinutes(15));
     perform(patch("/triage/" + orange + "/call"), nurse).andExpect(status().isOk());
+
+    // Outro hospital com triagem própria: não pode entrar nos números deste (as consultas dos
+    // relatórios são SQL directo e filtram o hospital explicitamente).
+    UUID other = scenario.hospital("RX");
+    var otherNurse = scenario.as("enf2", other, Role.NURSE);
+    perform(json(post("/triage"), triageBody("RED")), otherNurse).andExpect(status().isCreated());
+    perform(json(post("/triage"), triageBody("RED")), otherNurse).andExpect(status().isCreated());
 
     perform(get("/reports/dashboard"), admin)
         .andExpect(status().isOk())
@@ -170,67 +176,10 @@ class ReportsApiIntegrationTest {
   }
 
   @Test
-  void financialFiguresAndIsolationBetweenHospitals() throws Exception {
-    String ana = patient("Ana Silva", "FEMALE");
-    String ft = invoice(ana, "FT", 10000);
-    perform(post("/financial/invoices/" + ft + "/issue"), reception).andExpect(status().isOk());
-    perform(
-        json(
-            post("/financial/invoices/" + ft + "/payments"),
-            "{\"amount\":4000,\"method\":\"CASH\"}"),
-        reception);
-    String fr = invoice(ana, "FR", 2500);
-    perform(
-        json(post("/financial/invoices/" + fr + "/issue"), "{\"paymentMethod\":\"CARD\"}"),
-        reception);
-    perform(
-            json(post("/financial/invoices/" + fr + "/credit-note"), "{\"reason\":\"Erro\"}"),
-            finance)
-        .andExpect(status().isCreated());
-
-    // Outro hospital com uma factura: não pode aparecer nos números deste.
-    UUID other = scenario.hospital("RX");
-    jdbc.update("UPDATE hospitals SET tax_id = '5417000002' WHERE id = ?", other.toString());
-    var otherDesk = scenario.as("rec2", other, Role.RECEPTIONIST);
-    String bob =
-        id(
-            perform(
-                json(
-                    post("/patients"),
-                    "{\"fullName\":\"Bob\",\"birthDate\":\"1980-01-01\",\"gender\":\"MALE\"}"),
-                otherDesk));
-    String otherFr =
-        id(perform(json(post("/financial/invoices"), invoiceBody(bob, "FR", 99999)), otherDesk));
-    perform(
-        json(post("/financial/invoices/" + otherFr + "/issue"), "{\"paymentMethod\":\"CASH\"}"),
-        otherDesk);
-
-    perform(get("/reports/financial"), finance)
-        .andExpect(jsonPath("$.summary.invoiced").value(12500.0))
-        .andExpect(jsonPath("$.summary.credited").value(2500.0))
-        .andExpect(jsonPath("$.summary.net").value(10000.0))
-        .andExpect(jsonPath("$.summary.received").value(6500.0))
-        .andExpect(jsonPath("$.summary.outstanding").value(6000.0))
-        .andExpect(jsonPath("$.byPaymentMethod[0].key").value("CASH"))
-        .andExpect(jsonPath("$.topServices[0].key").value("Consulta"))
-        .andExpect(jsonPath("$.daily[29].received").value(6500.0));
-    perform(get("/reports/dashboard"), admin)
-        .andExpect(jsonPath("$.finance.invoiced").value(12500.0));
-    var csv =
-        new String(
-            perform(get("/reports/financial.csv"), finance)
-                .andReturn()
-                .getResponse()
-                .getContentAsByteArray(),
-            StandardCharsets.UTF_8);
-    assertThat(csv).contains("Total;12500,00;6500,00");
-  }
-
-  @Test
   void permissionsAndPeriodValidation() throws Exception {
     perform(get("/reports/dashboard"), finance).andExpect(status().isForbidden());
+    perform(get("/reports/financial"), admin).andExpect(status().isNotFound());
     perform(get("/reports/dashboard"), nurse).andExpect(status().isForbidden());
-    perform(get("/reports/financial"), nurse).andExpect(status().isForbidden());
     perform(get("/reports/dashboard").param("from", "2026-01-10").param("to", "2026-01-01"), admin)
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("INVALID_RANGE"));
@@ -275,17 +224,6 @@ class ReportsApiIntegrationTest {
                 post("/inpatient/beds"),
                 "{\"wardId\":\"%s\",\"code\":\"%s\",\"type\":\"STANDARD\"}".formatted(ward, code)),
             admin));
-  }
-
-  private static String invoiceBody(String patient, String type, int amount) {
-    return """
-        {"documentType":"%s","patientId":"%s","lines":[{"description":"Consulta","quantity":1,"unitPrice":%d,"vatRate":0,"vatExemptionReason":"Isento"}]}"""
-        .formatted(type, patient, amount);
-  }
-
-  private String invoice(String patient, String type, int amount) throws Exception {
-    return id(
-        perform(json(post("/financial/invoices"), invoiceBody(patient, type, amount)), reception));
   }
 
   private static String id(ResultActions result) throws Exception {

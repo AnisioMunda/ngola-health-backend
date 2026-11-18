@@ -3,7 +3,6 @@ package com.ngolahealth.backend.modules.portal.api;
 import com.ngolahealth.backend.modules.portal.api.PortalDtos.ActivationRequest;
 import com.ngolahealth.backend.modules.portal.api.PortalDtos.CancelRequest;
 import com.ngolahealth.backend.modules.portal.api.PortalDtos.PortalAppointment;
-import com.ngolahealth.backend.modules.portal.api.PortalDtos.PortalInvoice;
 import com.ngolahealth.backend.modules.portal.api.PortalDtos.PortalLabRequest;
 import com.ngolahealth.backend.modules.portal.api.PortalDtos.PortalPrescription;
 import com.ngolahealth.backend.modules.portal.api.PortalDtos.PortalProfile;
@@ -76,12 +75,6 @@ public class PortalController {
   @PreAuthorize(PATIENT)
   public List<PortalPrescription> prescriptions() {
     return portal.prescriptions();
-  }
-
-  @GetMapping("/invoices")
-  @PreAuthorize(PATIENT)
-  public List<PortalInvoice> invoices() {
-    return portal.invoices();
   }
 
   @GetMapping("/visits")

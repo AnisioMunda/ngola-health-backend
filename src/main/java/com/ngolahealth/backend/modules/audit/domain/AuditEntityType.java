@@ -17,7 +17,9 @@ public enum AuditEntityType {
   WARD,
   BED,
   ADMISSION,
+  /** Módulo financeiro retirado: mantido para ler eventos de auditoria antigos. */
   SERVICE_PRICE,
+  /** Módulo financeiro retirado: mantido para ler eventos de auditoria antigos. */
   INVOICE,
   SHIFT,
   LEAVE_REQUEST,

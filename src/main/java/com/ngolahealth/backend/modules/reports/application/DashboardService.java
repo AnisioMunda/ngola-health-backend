@@ -11,7 +11,6 @@ import com.ngolahealth.backend.modules.reports.api.ReportDtos.PatientStats;
 import com.ngolahealth.backend.modules.reports.api.ReportDtos.PharmacyStats;
 import com.ngolahealth.backend.modules.reports.api.ReportDtos.TriageStats;
 import com.ngolahealth.backend.modules.triage.domain.TriagePriority;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class DashboardService {
 
   private final ReportSupport r;
-  private final FinancialReportService finance;
   private final TriageProperties triage;
 
   @Transactional(readOnly = true)
@@ -47,7 +45,6 @@ public class DashboardService {
         inpatient(p),
         lab(p),
         pharmacy(p),
-        finance.summary(period),
         daily(period));
   }
 
@@ -224,7 +221,6 @@ public class DashboardService {
                 + " d, COUNT(*) FROM triage_records"
                 + " WHERE hospital_id = :hospital AND triaged_at >= :start AND triaged_at < :end GROUP BY d",
             p);
-    var revenue = finance.invoicedPerDay(period);
     var result = new ArrayList<DayPoint>();
     for (var d = period.from(); !d.isAfter(period.to()); d = d.plusDays(1)) {
       result.add(
@@ -232,8 +228,7 @@ public class DashboardService {
               d,
               episodes.getOrDefault(d, 0L),
               admissions.getOrDefault(d, 0L),
-              triaged.getOrDefault(d, 0L),
-              revenue.getOrDefault(d, BigDecimal.ZERO.setScale(2))));
+              triaged.getOrDefault(d, 0L)));
     }
     return result;
   }

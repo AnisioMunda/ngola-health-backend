@@ -1,10 +1,8 @@
 package com.ngolahealth.backend.modules.reports.api;
 
 import com.ngolahealth.backend.modules.reports.api.ReportDtos.Dashboard;
-import com.ngolahealth.backend.modules.reports.api.ReportDtos.FinancialReport;
 import com.ngolahealth.backend.modules.reports.api.ReportDtos.OccupancyReport;
 import com.ngolahealth.backend.modules.reports.application.DashboardService;
-import com.ngolahealth.backend.modules.reports.application.FinancialReportService;
 import com.ngolahealth.backend.modules.reports.application.OccupancyReportService;
 import com.ngolahealth.backend.security.Authorities;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,12 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/reports")
 @RequiredArgsConstructor
-@Tag(name = "Relatórios", description = "Dashboard executivo, ocupação e financeiro")
+@Tag(name = "Relatórios", description = "Dashboard executivo e ocupação")
 public class ReportsController {
 
   private final DashboardService dashboard;
   private final OccupancyReportService occupancy;
-  private final FinancialReportService financial;
 
   @GetMapping("/dashboard")
   @PreAuthorize(Authorities.REPORT_READERS)
@@ -79,31 +76,6 @@ public class ReportsController {
             "Dias-cama",
             "Ocupação %",
             "Demora média (dias)"),
-        rows);
-  }
-
-  @GetMapping("/financial")
-  @PreAuthorize(Authorities.FINANCIAL_REPORT_READERS)
-  public FinancialReport financial(
-      @RequestParam(required = false) LocalDate from,
-      @RequestParam(required = false) LocalDate to) {
-    return financial.report(from, to);
-  }
-
-  @GetMapping("/financial.csv")
-  @PreAuthorize(Authorities.FINANCIAL_REPORT_READERS)
-  public ResponseEntity<byte[]> financialCsv(
-      @RequestParam(required = false) LocalDate from,
-      @RequestParam(required = false) LocalDate to) {
-    var r = financial.report(from, to);
-    var rows = new ArrayList<List<Object>>();
-    for (var d : r.daily()) {
-      rows.add(List.of(d.date().toString(), d.invoiced(), d.received()));
-    }
-    rows.add(List.of("Total", r.summary().invoiced(), r.summary().received()));
-    return CsvWriter.file(
-        "financeiro_" + r.from() + "_" + r.to() + ".csv",
-        List.of("Dia", "Facturado (AOA)", "Recebido (AOA)"),
         rows);
   }
 }

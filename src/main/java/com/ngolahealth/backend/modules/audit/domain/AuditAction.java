@@ -24,6 +24,9 @@ public enum AuditAction {
   DELETE,
   TRANSFER,
   DISCHARGE,
+  /**
+   * ISSUE, PAYMENT e CREDIT_NOTE: do módulo financeiro (retirado); mantidos para eventos antigos.
+   */
   ISSUE,
   PAYMENT,
   CREDIT_NOTE,
