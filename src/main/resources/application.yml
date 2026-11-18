@@ -100,15 +100,34 @@ app:
   equipment:
     # Resumo diário de manutenções/calibrações vencidas ou a vencer (hora local de app.time-zone).
     due-cron: "0 0 7 * * *"
+  metrics:
+    # Credenciais do Prometheus para /actuator/prometheus (HTTP Basic). Vazio = endpoint fechado.
+    username: ${METRICS_USERNAME:}
+    password: ${METRICS_PASSWORD:}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        # health é público (sondas); info e metrics exigem SUPER_ADMIN; prometheus usa credenciais próprias.
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: when-authorized
+      roles: SUPER_ADMIN
+      # /actuator/health/liveness e /actuator/health/readiness para orquestradores e balanceadores.
+      probes:
+        enabled: true
+  info:
+    java:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      # Histogramas para percentis (p95/p99) no Prometheus.
+      percentiles-histogram:
+        http.server.requests: true
 
 springdoc:
   api-docs:
@@ -123,8 +142,18 @@ springdoc:
 logging:
   level:
     com.ngolahealth: INFO
+    # Uma linha por pedido HTTP (método, caminho sem query string, estado, duração). WARN desliga.
+    ngolahealth.http: INFO
   pattern:
     console: "%d{HH:mm:ss.SSS} %-5level [%thread] [%X{requestId:-}] %logger{36} - %msg%n"
+  # Ficheiro opcional (LOG_FILE=/var/log/ngolahealth/backend.log); vazio = só consola.
+  file:
+    name: ${LOG_FILE:}
+  logback:
+    rollingpolicy:
+      max-file-size: 50MB
+      max-history: 30
+      total-size-cap: 2GB
 
 ---
 # Perfil de desenvolvimento local (activo por omissão)
@@ -159,3 +188,13 @@ spring:
       on-profile: prod
   liquibase:
     contexts: prod
+
+# Produção: logs em JSON (formato Logstash), um objecto por linha, com requestId, userId e
+# hospitalId vindos do MDC. Prontos para Loki, Elasticsearch ou journald.
+logging:
+  structured:
+    format:
+      console: logstash
+      file: logstash
+  level:
+    com.ngolahealth: INFO

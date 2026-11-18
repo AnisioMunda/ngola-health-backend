@@ -55,6 +55,7 @@ public class AuthService {
   private final AuthProperties properties;
   private final Clock clock;
   private final AuditTrail audit;
+  private final LoginMetrics loginMetrics;
 
   /** Hash usado quando a conta não existe, para que o tempo de resposta não a denuncie. */
   private volatile String dummyHash;
@@ -64,6 +65,17 @@ public class AuthService {
    * termina com excepção.
    */
   public TokenResponse login(LoginRequest request, String ipAddress, String userAgent) {
+    try {
+      var tokens = authenticate(request, ipAddress, userAgent);
+      loginMetrics.success();
+      return tokens;
+    } catch (UnauthorizedException e) {
+      loginMetrics.failure(e.getCode());
+      throw e;
+    }
+  }
+
+  private TokenResponse authenticate(LoginRequest request, String ipAddress, String userAgent) {
     Instant now = clock.instant();
     String login = request.login().strip().toLowerCase(Locale.ROOT);
     Optional<User> found = users.findByLogin(login);

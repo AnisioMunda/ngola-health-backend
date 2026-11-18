@@ -4,6 +4,7 @@ import com.ngolahealth.backend.config.properties.AppProperties;
 import com.ngolahealth.backend.security.PasswordChangeRequiredFilter;
 import com.ngolahealth.backend.security.PortalAudienceFilter;
 import com.ngolahealth.backend.security.ProblemJsonSecurityHandler;
+import com.ngolahealth.backend.security.UserLogContextFilter;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -37,7 +38,8 @@ public class SecurityConfig {
   /** Endpoints acessíveis sem autenticação. */
   static final String[] PUBLIC_ENDPOINTS = {
     "/actuator/health",
-    "/actuator/info",
+    "/actuator/health/liveness",
+    "/actuator/health/readiness",
     "/error",
     "/auth/login",
     "/auth/refresh",
@@ -68,6 +70,10 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(API_DOCS_ENDPOINTS)
                     .permitAll()
+                    // info, metrics e restantes endpoints de gestão: só a administração da
+                    // plataforma.
+                    .requestMatchers("/actuator/**")
+                    .hasRole("SUPER_ADMIN")
                     .anyRequest()
                     .authenticated())
         // Token de acesso JWT; a sessão e o utilizador são verificados na base de dados.
@@ -83,6 +89,7 @@ public class SecurityConfig {
         .addFilterAfter(
             new PortalAudienceFilter(problemJsonSecurityHandler),
             PasswordChangeRequiredFilter.class)
+        .addFilterAfter(new UserLogContextFilter(), PortalAudienceFilter.class)
         .exceptionHandling(
             ex ->
                 ex.authenticationEntryPoint(problemJsonSecurityHandler)

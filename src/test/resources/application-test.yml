@@ -15,3 +15,8 @@ springdoc:
 logging:
   level:
     com.ngolahealth: INFO
+
+app:
+  metrics:
+    username: prometheus-test
+    password: senha-metricas-teste-2026
