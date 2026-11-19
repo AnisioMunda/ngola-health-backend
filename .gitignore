@@ -35,3 +35,9 @@ build/
 ### Segredos locais ###
 .env
 *.local.yml
+
+### Backups e chaves (nunca no repositório) ###
+*.pem
+*.key
+*.sql.gz.enc
+key.rsa

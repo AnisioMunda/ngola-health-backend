@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Backup diário às 02:30 em macOS (launchd). Para instalar:
+    1. Copie para ~/Library/LaunchAgents/com.ngolahealth.backup.plist
+    2. Substitua CAMINHO_DO_BACKEND pelo caminho absoluto da pasta backend
+    3. launchctl load ~/Library/LaunchAgents/com.ngolahealth.backup.plist
+  Se o Mac estiver a dormir às 02:30, o launchd corre o backup quando acordar.
+  Logs: /tmp/ngolahealth-backup.log (mude para outra pasta se quiser guardá-los)
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.ngolahealth.backup</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>CAMINHO_DO_BACKEND/ops/backup/backup.sh</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>2</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/tmp/ngolahealth-backup.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/ngolahealth-backup.log</string>
+</dict>
+</plist>
