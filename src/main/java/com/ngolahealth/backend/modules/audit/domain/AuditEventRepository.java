@@ -1,5 +1,6 @@
 package com.ngolahealth.backend.modules.audit.domain;
 
+import com.ngolahealth.backend.common.web.CappedCount;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -15,21 +16,41 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, UUID> {
    * só é permitido ao SUPER_ADMIN; {@code to} é exclusivo.
    */
   @Query(
-      """
-      SELECT e FROM AuditEvent e
-      WHERE (:hospitalId IS NULL OR e.hospitalId = :hospitalId)
-        AND (:action IS NULL OR e.action = :action)
-        AND (:entityType IS NULL OR e.entityType = :entityType)
-        AND (:entityId IS NULL OR e.entityId = :entityId)
-        AND (:actorId IS NULL OR e.actorId = :actorId)
-        AND (:outcome IS NULL OR e.outcome = :outcome)
-        AND (:from IS NULL OR e.occurredAt >= :from)
-        AND (:to IS NULL OR e.occurredAt < :to)
-        AND (:pattern IS NULL
-             OR LOWER(e.summary) LIKE :pattern ESCAPE '\\'
-             OR LOWER(e.actorUsername) LIKE :pattern ESCAPE '\\'
-             OR LOWER(e.actorName) LIKE :pattern ESCAPE '\\')
-      """)
+      value =
+          """
+          SELECT e FROM AuditEvent e
+          WHERE (:hospitalId IS NULL OR e.hospitalId = :hospitalId)
+            AND (:action IS NULL OR e.action = :action)
+            AND (:entityType IS NULL OR e.entityType = :entityType)
+            AND (:entityId IS NULL OR e.entityId = :entityId)
+            AND (:actorId IS NULL OR e.actorId = :actorId)
+            AND (:outcome IS NULL OR e.outcome = :outcome)
+            AND (:from IS NULL OR e.occurredAt >= :from)
+            AND (:to IS NULL OR e.occurredAt < :to)
+            AND (:pattern IS NULL
+                 OR LOWER(e.summary) LIKE :pattern ESCAPE '\\'
+                 OR LOWER(e.actorUsername) LIKE :pattern ESCAPE '\\'
+                 OR LOWER(e.actorName) LIKE :pattern ESCAPE '\\')
+          """,
+      countQuery =
+          """
+          SELECT COUNT(*) FROM (SELECT e.id AS id FROM AuditEvent e
+          WHERE (:hospitalId IS NULL OR e.hospitalId = :hospitalId)
+            AND (:action IS NULL OR e.action = :action)
+            AND (:entityType IS NULL OR e.entityType = :entityType)
+            AND (:entityId IS NULL OR e.entityId = :entityId)
+            AND (:actorId IS NULL OR e.actorId = :actorId)
+            AND (:outcome IS NULL OR e.outcome = :outcome)
+            AND (:from IS NULL OR e.occurredAt >= :from)
+            AND (:to IS NULL OR e.occurredAt < :to)
+            AND (:pattern IS NULL
+                 OR LOWER(e.summary) LIKE :pattern ESCAPE '\\'
+                 OR LOWER(e.actorUsername) LIKE :pattern ESCAPE '\\'
+                 OR LOWER(e.actorName) LIKE :pattern ESCAPE '\\')
+          ORDER BY e.occurredAt DESC, e.id DESC
+          """
+              + CappedCount.SUBQUERY_LIMIT
+              + ") c")
   Page<AuditEvent> search(
       @Param("hospitalId") UUID hospitalId,
       @Param("action") AuditAction action,

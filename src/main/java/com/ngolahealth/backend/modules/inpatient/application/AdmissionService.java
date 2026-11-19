@@ -83,7 +83,7 @@ public class AdmissionService {
             patientId,
             doctorId,
             PageRequest.of(
-                page, size, Sort.by(Sort.Order.desc("admittedAt"), Sort.Order.asc("id"))));
+                page, size, Sort.by(Sort.Order.desc("admittedAt"), Sort.Order.desc("id"))));
     var mapped =
         toResponses(result.getContent(), false).stream()
             .collect(Collectors.toMap(AdmissionResponse::id, Function.identity()));

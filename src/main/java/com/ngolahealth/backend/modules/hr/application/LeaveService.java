@@ -103,7 +103,7 @@ public class LeaveService {
             from,
             to,
             PageRequest.of(
-                page, size, Sort.by(Sort.Order.desc("startDate"), Sort.Order.asc("id"))));
+                page, size, Sort.by(Sort.Order.desc("startDate"), Sort.Order.desc("id"))));
     var mapped = toResponses(result.getContent());
     var byId = new java.util.HashMap<UUID, LeaveResponse>();
     mapped.forEach(m -> byId.put(m.id(), m));

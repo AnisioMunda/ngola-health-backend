@@ -44,6 +44,12 @@ spring:
         # UUIDs guardados como CHAR(36): legíveis no cliente mysql.
         type:
           preferred_uuid_jdbc_type: CHAR
+        # Regista (logger org.hibernate.SQL_SLOW) as consultas mais lentas do que isto, com o SQL mas
+        # sem os valores dos parâmetros. Primeiro sinal de um índice em falta.
+        session:
+          events:
+            log:
+              LOG_QUERIES_SLOWER_THAN_MS: ${SLOW_QUERY_MS:500}
 
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml

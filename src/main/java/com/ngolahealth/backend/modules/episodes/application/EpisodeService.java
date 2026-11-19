@@ -70,23 +70,21 @@ public class EpisodeService {
   @Transactional(readOnly = true)
   public PageResponse<EpisodeSummary> search(EpisodeSearch q, int page, int size) {
     requireHospitalUser();
-    var statuses =
-        q.statuses() == null || q.statuses().isEmpty()
-            ? EnumSet.allOf(EpisodeStatus.class)
-            : q.statuses();
-    var sort =
-        q.newestFirst()
-            ? Sort.by(Sort.Order.desc("scheduledAt"))
-            : Sort.by(Sort.Order.asc("scheduledAt"));
+    boolean anyStatus = q.statuses() == null || q.statuses().isEmpty();
+    var statuses = anyStatus ? EnumSet.allOf(EpisodeStatus.class) : q.statuses();
+    // O desempate (id) vai no mesmo sentido da data: assim o MySQL lê o índice já ordenado e pára
+    // ao fim de uma página, em vez de ordenar todos os episódios do hospital.
+    var direction = q.newestFirst() ? Sort.Direction.DESC : Sort.Direction.ASC;
     var result =
         episodes.search(
+            anyStatus,
             statuses,
             q.patientId(),
             q.doctorId(),
             q.type(),
             q.from(),
             q.to(),
-            PageRequest.of(page, size, sort.and(Sort.by("id"))));
+            PageRequest.of(page, size, Sort.by(direction, "scheduledAt", "id")));
     var patientRefs =
         patients.findAll(result.getContent().stream().map(Episode::getPatientId).toList());
     var names = staff.names(result.getContent().stream().map(Episode::getDoctorId).toList());

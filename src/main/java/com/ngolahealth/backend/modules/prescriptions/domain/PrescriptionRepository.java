@@ -1,5 +1,6 @@
 package com.ngolahealth.backend.modules.prescriptions.domain;
 
+import com.ngolahealth.backend.common.web.CappedCount;
 import jakarta.persistence.LockModeType;
 import java.util.Collection;
 import java.util.List;
@@ -27,13 +28,25 @@ public interface PrescriptionRepository extends JpaRepository<Prescription, UUID
   List<Prescription> findByEpisode(@Param("episodeId") UUID episodeId);
 
   @Query(
-      """
-      SELECT p FROM Prescription p
-      WHERE p.status IN :statuses
-        AND (:patientId IS NULL OR p.patientId = :patientId)
-        AND (:number IS NULL OR p.number = :number)
-      """)
+      value =
+          """
+          SELECT p FROM Prescription p
+          WHERE (:anyStatus = TRUE OR p.status IN :statuses)
+            AND (:patientId IS NULL OR p.patientId = :patientId)
+            AND (:number IS NULL OR p.number = :number)
+          """,
+      countQuery =
+          """
+          SELECT COUNT(*) FROM (SELECT p.id AS id FROM Prescription p
+          WHERE (:anyStatus = TRUE OR p.status IN :statuses)
+            AND (:patientId IS NULL OR p.patientId = :patientId)
+            AND (:number IS NULL OR p.number = :number)
+          ORDER BY p.issuedAt DESC, p.id DESC
+          """
+              + CappedCount.SUBQUERY_LIMIT
+              + ") c")
   Page<Prescription> search(
+      @Param("anyStatus") boolean anyStatus,
       @Param("statuses") Collection<PrescriptionStatus> statuses,
       @Param("patientId") UUID patientId,
       @Param("number") String number,

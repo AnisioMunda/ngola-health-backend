@@ -54,7 +54,7 @@ public class AuditQueryService {
             query.to(),
             likePattern(query.search()),
             PageRequest.of(
-                page, size, Sort.by(Sort.Order.desc("occurredAt"), Sort.Order.asc("id"))));
+                page, size, Sort.by(Sort.Order.desc("occurredAt"), Sort.Order.desc("id"))));
     return PageResponse.of(result, this::toResponse);
   }
 

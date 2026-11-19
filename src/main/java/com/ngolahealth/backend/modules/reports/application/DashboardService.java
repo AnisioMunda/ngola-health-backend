@@ -56,56 +56,82 @@ public class DashboardService {
             p));
   }
 
+  /** Uma só passagem: contagens por (tipo, estado), somadas em Java. */
   private EpisodeStats episodes(org.springframework.jdbc.core.namedparam.MapSqlParameterSource p) {
-    var where =
-        " FROM episodes WHERE hospital_id = :hospital AND scheduled_at >= :start AND scheduled_at < :end";
-    var byType =
-        r.grouped("SELECT type, COUNT(*)" + where + " GROUP BY type ORDER BY COUNT(*) DESC", p);
-    var byStatus = r.grouped("SELECT status, COUNT(*)" + where + " GROUP BY status", p);
+    var byType = new HashMap<String, Long>();
+    var byStatus = new LinkedHashMap<String, Long>();
+    r.jdbc.query(
+        "SELECT type, status, COUNT(*) FROM episodes WHERE hospital_id = :hospital"
+            + " AND scheduled_at >= :start AND scheduled_at < :end GROUP BY type, status",
+        p,
+        rs -> {
+          long n = rs.getLong(3);
+          byType.merge(rs.getString(1), n, Long::sum);
+          byStatus.merge(rs.getString(2), n, Long::sum);
+        });
+    var typesByCount = new LinkedHashMap<String, Long>();
+    byType.entrySet().stream()
+        .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+        .forEach(e -> typesByCount.put(e.getKey(), e.getValue()));
     return new EpisodeStats(
         byType.values().stream().mapToLong(Long::longValue).sum(),
         byStatus.getOrDefault("COMPLETED", 0L),
-        byType,
+        typesByCount,
         byStatus);
   }
 
-  /** Espera = da classificação à chamada; cumprimento do tempo-alvo por prioridade (Manchester). */
+  /**
+   * Espera = da classificação à chamada; cumprimento do tempo-alvo por prioridade (Manchester). Uma
+   * só passagem pelo índice (hospital, data, prioridade, chamada): por prioridade, o total, os já
+   * chamados, a soma das esperas e os chamados dentro do tempo-alvo.
+   */
   private TriageStats triage(org.springframework.jdbc.core.namedparam.MapSqlParameterSource p) {
-    var where =
-        " FROM triage_records WHERE hospital_id = :hospital AND triaged_at >= :start AND triaged_at < :end";
-    var byPriority = r.grouped("SELECT priority, COUNT(*)" + where + " GROUP BY priority", p);
-    var ordered = new LinkedHashMap<String, Long>();
-    for (var prio : TriagePriority.values()) {
-      if (byPriority.containsKey(prio.name())) {
-        ordered.put(prio.name(), byPriority.get(prio.name()));
-      }
-    }
     var wait = "TIMESTAMPDIFF(SECOND, triaged_at, called_at) / 60.0";
     var target =
         Stream.of(TriagePriority.values())
             .map(t -> "WHEN '" + t.name() + "' THEN " + triage.targetFor(t))
             .collect(Collectors.joining(" ", "CASE priority ", " END"));
-    var called = where + " AND called_at IS NOT NULL";
-    long calledCount = r.count("SELECT COUNT(*)" + called, p);
-    long within = r.count("SELECT COUNT(*)" + called + " AND " + wait + " <= " + target, p);
-    var byPriorityWait = new LinkedHashMap<String, Double>();
+    var rows = new HashMap<String, double[]>();
     r.jdbc.query(
-        "SELECT priority, AVG(" + wait + ")" + called + " GROUP BY priority",
+        "SELECT priority, COUNT(*), COUNT(called_at), SUM("
+            + wait
+            + "), SUM(called_at IS NOT NULL AND "
+            + wait
+            + " <= "
+            + target
+            + ") FROM triage_records WHERE hospital_id = :hospital"
+            + " AND triaged_at >= :start AND triaged_at < :end GROUP BY priority",
         p,
         rs -> {
-          byPriorityWait.put(rs.getString(1), ReportSupport.round1(rs.getDouble(2)));
+          rows.put(
+              rs.getString(1),
+              new double[] {rs.getLong(2), rs.getLong(3), rs.getDouble(4), rs.getLong(5)});
         });
+    var byPriority = new LinkedHashMap<String, Long>();
     var avgWait = new LinkedHashMap<String, Double>();
+    long total = 0;
+    long called = 0;
+    long within = 0;
+    double waitSum = 0;
     for (var prio : TriagePriority.values()) {
-      if (byPriorityWait.containsKey(prio.name())) {
-        avgWait.put(prio.name(), byPriorityWait.get(prio.name()));
+      var row = rows.get(prio.name());
+      if (row == null) {
+        continue;
       }
+      byPriority.put(prio.name(), (long) row[0]);
+      if (row[1] > 0) {
+        avgWait.put(prio.name(), ReportSupport.round1(row[2] / row[1]));
+      }
+      total += (long) row[0];
+      called += (long) row[1];
+      waitSum += row[2];
+      within += (long) row[3];
     }
     return new TriageStats(
-        ordered.values().stream().mapToLong(Long::longValue).sum(),
-        ordered,
-        r.dbl("SELECT AVG(" + wait + ")" + called, p),
-        ReportSupport.percent(within, calledCount),
+        total,
+        byPriority,
+        called == 0 ? null : ReportSupport.round1(waitSum / called),
+        ReportSupport.percent(within, called),
         avgWait);
   }
 
@@ -152,30 +178,39 @@ public class DashboardService {
             p));
   }
 
+  /** Duas passagens: os pedidos (contagens e tempos de resposta) e os exames validados. */
   private LabStats lab(org.springframework.jdbc.core.namedparam.MapSqlParameterSource p) {
-    var where =
-        " FROM lab_requests WHERE hospital_id = :hospital AND requested_at >= :start AND requested_at < :end";
     var tat = "TIMESTAMPDIFF(MINUTE, requested_at, completed_at) / 60.0";
-    long items =
-        r.count(
-            "SELECT COUNT(*) FROM lab_request_items i JOIN lab_requests q ON q.id = i.request_id"
+    var items =
+        r.jdbc.queryForObject(
+            "SELECT COUNT(*), COALESCE(SUM(i.flag IN ('LOW', 'HIGH', 'ABNORMAL')), 0)"
+                + " FROM lab_request_items i JOIN lab_requests q ON q.id = i.request_id"
                 + " WHERE q.hospital_id = :hospital AND q.requested_at >= :start AND q.requested_at < :end"
                 + " AND i.status = 'VALIDATED'",
-            p);
-    long abnormal =
-        r.count(
-            "SELECT COUNT(*) FROM lab_request_items i JOIN lab_requests q ON q.id = i.request_id"
-                + " WHERE q.hospital_id = :hospital AND q.requested_at >= :start AND q.requested_at < :end"
-                + " AND i.status = 'VALIDATED' AND i.flag IN ('LOW', 'HIGH', 'ABNORMAL')",
-            p);
-    return new LabStats(
-        r.count("SELECT COUNT(*)" + where + " AND status <> 'CANCELLED'", p),
-        r.count("SELECT COUNT(*)" + where + " AND status = 'COMPLETED'", p),
-        r.dbl("SELECT AVG(" + tat + ")" + where + " AND status = 'COMPLETED'", p),
-        r.dbl(
-            "SELECT AVG(" + tat + ")" + where + " AND status = 'COMPLETED' AND priority = 'URGENT'",
-            p),
-        ReportSupport.percent(abnormal, items));
+            p,
+            (rs, n) -> new long[] {rs.getLong(1), rs.getLong(2)});
+    return r.jdbc.queryForObject(
+        "SELECT COALESCE(SUM(status <> 'CANCELLED'), 0), COALESCE(SUM(status = 'COMPLETED'), 0),"
+            + " AVG(CASE WHEN status = 'COMPLETED' THEN "
+            + tat
+            + " END), AVG(CASE WHEN status = 'COMPLETED' AND priority = 'URGENT' THEN "
+            + tat
+            + " END) FROM lab_requests WHERE hospital_id = :hospital"
+            + " AND requested_at >= :start AND requested_at < :end",
+        p,
+        (rs, n) ->
+            new LabStats(
+                rs.getLong(1),
+                rs.getLong(2),
+                nullableRound(rs, 3),
+                nullableRound(rs, 4),
+                ReportSupport.percent(items[1], items[0])));
+  }
+
+  private static Double nullableRound(java.sql.ResultSet rs, int column)
+      throws java.sql.SQLException {
+    double v = rs.getDouble(column);
+    return rs.wasNull() ? null : ReportSupport.round1(v);
   }
 
   private PharmacyStats pharmacy(org.springframework.jdbc.core.namedparam.MapSqlParameterSource p) {

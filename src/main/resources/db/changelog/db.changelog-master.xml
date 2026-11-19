@@ -60,4 +60,7 @@
     <!-- Módulo 17: Portal do paciente -->
     <include file="changes/portal/001-create-portal.sql" relativeToChangelogFile="true"/>
 
+    <!-- Módulo 20: índices revistos com medição em volume -->
+    <include file="changes/performance/001-review-indexes.sql" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

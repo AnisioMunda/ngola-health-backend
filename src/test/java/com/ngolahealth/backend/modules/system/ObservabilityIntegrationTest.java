@@ -125,6 +125,26 @@ class ObservabilityIntegrationTest {
     assertThat(output.getOut()).doesNotContain("GET /actuator/health");
   }
 
+  // ---------- Contagem truncada ----------
+
+  @Test
+  void cappedCountRunsOnMysqlAndKeepsExactTotalsBelowTheCap() throws Exception {
+    // Página de 1 com vários eventos (os dois logins do setUp, vistos pela plataforma): obriga a
+    // correr a contagem truncada.
+    mockMvc
+        .perform(get("/audit").param("size", "1").with(root))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(1))
+        .andExpect(jsonPath("$.totalElements", greaterThanOrEqualTo(2)))
+        .andExpect(jsonPath("$.totalCapped").value(false));
+    for (var path : new String[] {"/patients", "/episodes", "/lab/requests", "/prescriptions"}) {
+      mockMvc
+          .perform(get(path).param("size", "1").param("page", "1").with(admin))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.totalCapped").value(false));
+    }
+  }
+
   // ---------- Estado do sistema ----------
 
   @Test

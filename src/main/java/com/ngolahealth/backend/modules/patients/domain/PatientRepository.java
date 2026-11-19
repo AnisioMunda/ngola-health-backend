@@ -1,5 +1,6 @@
 package com.ngolahealth.backend.modules.patients.domain;
 
+import com.ngolahealth.backend.common.web.CappedCount;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -36,16 +37,31 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
    * BI, cartão de saúde ou telefone.
    */
   @Query(
-      """
-      SELECT p FROM Patient p
-      WHERE (:active IS NULL OR p.active = :active)
-        AND (:pattern IS NULL
-             OR p.fullName LIKE :pattern ESCAPE '\\'
-             OR p.recordNumber LIKE :pattern ESCAPE '\\'
-             OR p.nationalId LIKE :pattern ESCAPE '\\'
-             OR p.healthCardNumber LIKE :pattern ESCAPE '\\'
-             OR p.phone LIKE :pattern ESCAPE '\\')
-      """)
+      value =
+          """
+          SELECT p FROM Patient p
+          WHERE (:active IS NULL OR p.active = :active)
+            AND (:pattern IS NULL
+                 OR p.fullName LIKE :pattern ESCAPE '\\'
+                 OR p.recordNumber LIKE :pattern ESCAPE '\\'
+                 OR p.nationalId LIKE :pattern ESCAPE '\\'
+                 OR p.healthCardNumber LIKE :pattern ESCAPE '\\'
+                 OR p.phone LIKE :pattern ESCAPE '\\')
+          """,
+      countQuery =
+          """
+          SELECT COUNT(*) FROM (SELECT p.id AS id FROM Patient p
+          WHERE (:active IS NULL OR p.active = :active)
+            AND (:pattern IS NULL
+                 OR p.fullName LIKE :pattern ESCAPE '\\'
+                 OR p.recordNumber LIKE :pattern ESCAPE '\\'
+                 OR p.nationalId LIKE :pattern ESCAPE '\\'
+                 OR p.healthCardNumber LIKE :pattern ESCAPE '\\'
+                 OR p.phone LIKE :pattern ESCAPE '\\')
+          ORDER BY p.fullName, p.recordNumber
+          """
+              + CappedCount.SUBQUERY_LIMIT
+              + ") c")
   Page<Patient> search(
       @Param("pattern") String pattern, @Param("active") Boolean active, Pageable pageable);
 

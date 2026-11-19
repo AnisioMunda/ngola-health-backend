@@ -1,5 +1,6 @@
 package com.ngolahealth.backend.modules.laboratory.domain;
 
+import com.ngolahealth.backend.common.web.CappedCount;
 import jakarta.persistence.LockModeType;
 import java.util.Collection;
 import java.util.List;
@@ -25,13 +26,25 @@ public interface LabRequestRepository extends JpaRepository<LabRequest, UUID> {
   List<LabRequest> findByEpisode(@Param("episodeId") UUID episodeId);
 
   @Query(
-      """
-      SELECT r FROM LabRequest r
-      WHERE r.status IN :statuses
-        AND (:patientId IS NULL OR r.patientId = :patientId)
-        AND (:number IS NULL OR r.number = :number)
-      """)
+      value =
+          """
+          SELECT r FROM LabRequest r
+          WHERE (:anyStatus = TRUE OR r.status IN :statuses)
+            AND (:patientId IS NULL OR r.patientId = :patientId)
+            AND (:number IS NULL OR r.number = :number)
+          """,
+      countQuery =
+          """
+          SELECT COUNT(*) FROM (SELECT r.id AS id FROM LabRequest r
+          WHERE (:anyStatus = TRUE OR r.status IN :statuses)
+            AND (:patientId IS NULL OR r.patientId = :patientId)
+            AND (:number IS NULL OR r.number = :number)
+          ORDER BY r.requestedAt DESC, r.id DESC
+          """
+              + CappedCount.SUBQUERY_LIMIT
+              + ") c")
   Page<LabRequest> search(
+      @Param("anyStatus") boolean anyStatus,
       @Param("statuses") Collection<LabRequestStatus> statuses,
       @Param("patientId") UUID patientId,
       @Param("number") String number,

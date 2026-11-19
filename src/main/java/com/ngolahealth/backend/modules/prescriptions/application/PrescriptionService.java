@@ -77,10 +77,12 @@ public class PrescriptionService {
             : EnumSet.allOf(PrescriptionStatus.class);
     var result =
         prescriptions.search(
+            !onlyOpen,
             statuses,
             patientId,
             number == null || number.isBlank() ? null : number.strip().toUpperCase(),
-            PageRequest.of(page, size, Sort.by(Sort.Order.desc("issuedAt"))));
+            PageRequest.of(
+                page, size, Sort.by(Sort.Order.desc("issuedAt"), Sort.Order.desc("id"))));
     var context = context(result.getContent());
     return PageResponse.of(result, p -> toResponse(p, context));
   }

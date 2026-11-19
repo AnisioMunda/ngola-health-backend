@@ -19,7 +19,7 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
       """
       SELECT n FROM Notification n
       WHERE n.recipientId = :recipientId AND (:unreadOnly = false OR n.readAt IS NULL)
-      ORDER BY n.createdAt DESC, n.id
+      ORDER BY n.createdAt DESC, n.id DESC
       """)
   Page<Notification> findForRecipient(
       @Param("recipientId") UUID recipientId,

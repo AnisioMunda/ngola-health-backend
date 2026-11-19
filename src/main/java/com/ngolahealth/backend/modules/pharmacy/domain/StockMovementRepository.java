@@ -11,6 +11,6 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, UU
 
   @Query(
       "SELECT m FROM StockMovement m WHERE m.medicationId = :medicationId"
-          + " ORDER BY m.performedAt DESC, m.id")
+          + " ORDER BY m.performedAt DESC, m.id DESC")
   Page<StockMovement> findByMedication(@Param("medicationId") UUID medicationId, Pageable pageable);
 }

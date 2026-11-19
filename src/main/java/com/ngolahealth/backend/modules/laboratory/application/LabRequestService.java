@@ -85,13 +85,20 @@ public class LabRequestService {
             ? EnumSet.of(
                 LabRequestStatus.PENDING, LabRequestStatus.COLLECTED, LabRequestStatus.IN_ANALYSIS)
             : EnumSet.allOf(LabRequestStatus.class);
+    // Lista de trabalho: urgentes primeiro e, dentro de cada prioridade, os mais antigos.
+    // Histórico:
+    // do mais recente para o mais antigo (lido directamente do índice por data).
+    var sort =
+        onlyOpen
+            ? Sort.by(Sort.Order.desc("priority"), Sort.Order.asc("requestedAt"))
+            : Sort.by(Sort.Order.desc("requestedAt"), Sort.Order.desc("id"));
     var result =
         requests.search(
+            !onlyOpen,
             statuses,
             patientId,
             number == null || number.isBlank() ? null : number.strip().toUpperCase(),
-            PageRequest.of(
-                page, size, Sort.by(Sort.Order.desc("priority"), Sort.Order.asc("requestedAt"))));
+            PageRequest.of(page, size, sort));
     var ctx = context(result.getContent(), false);
     return PageResponse.of(result, r -> toResponse(r, ctx));
   }
