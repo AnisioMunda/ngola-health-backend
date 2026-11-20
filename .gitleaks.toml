@@ -1,8 +1,0 @@
-# Pesquisa de segredos (gitleaks). Usa as regras por omissão; as excepções abaixo são valores
-# de TESTE, que só existem nas bases descartáveis dos testes.
-[extend]
-useDefault = true
-
-[[allowlists]]
-description = "Credenciais fictícias dos testes de integração"
-paths = ['''src/test/resources/application-test\.yml''', '''src/test/java/.*''']
