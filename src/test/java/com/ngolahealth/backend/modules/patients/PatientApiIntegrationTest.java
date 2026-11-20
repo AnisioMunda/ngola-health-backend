@@ -240,6 +240,21 @@ class PatientApiIntegrationTest {
     return JsonPath.read(result.getResponse().getContentAsString(), "$.id");
   }
 
+  @Test
+  void listShowsTheDataThatHelpRecogniseThePatient() throws Exception {
+    create(
+        receptionistA,
+        """
+        {"fullName":"Rosa Kiala","birthDate":"1980-02-02","gender":"FEMALE",
+         "healthCardNumber":"CS-778","province":"Huambo","bloodType":"O+","version":null}""");
+    mockMvc
+        .perform(get("/patients").param("search", "Rosa Kiala").with(receptionistA))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].healthCardNumber").value("CS-778"))
+        .andExpect(jsonPath("$.content[0].province").value("Huambo"))
+        .andExpect(jsonPath("$.content[0].bloodType").value("O+"));
+  }
+
   private static String patient(String name, String birthDate, String nationalId) {
     return """
         {"fullName":"%s","birthDate":"%s","gender":"FEMALE","nationalId":%s,

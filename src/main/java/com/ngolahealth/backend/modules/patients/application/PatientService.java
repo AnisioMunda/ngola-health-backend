@@ -245,7 +245,10 @@ public class PatientService {
         p.ageOn(today),
         p.getGender(),
         p.getNationalId(),
+        p.getHealthCardNumber(),
         p.getPhone(),
+        p.getProvince(),
+        p.getBloodType(),
         p.isActive());
   }
 

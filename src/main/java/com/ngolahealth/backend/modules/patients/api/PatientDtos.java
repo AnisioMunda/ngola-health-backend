@@ -69,6 +69,7 @@ public final class PatientDtos {
       String nationalId,
       String phone) {}
 
+  /** Linha da lista de pacientes: identificação e os dados que ajudam a reconhecer o doente. */
   public record PatientSummary(
       UUID id,
       String recordNumber,
@@ -77,7 +78,10 @@ public final class PatientDtos {
       int age,
       Gender gender,
       String nationalId,
+      String healthCardNumber,
       String phone,
+      String province,
+      String bloodType,
       boolean active) {}
 
   public record PatientResponse(
