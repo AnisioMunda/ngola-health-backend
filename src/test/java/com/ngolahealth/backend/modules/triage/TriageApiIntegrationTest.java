@@ -208,6 +208,40 @@ class TriageApiIntegrationTest {
   }
 
   @Test
+  void callBoardShowsOnlyTicketsAndRecallsAnnounceAgain() throws Exception {
+    String first = triage(tempBody("GREEN", "Doente Sigiloso"));
+    clock.advance(Duration.ofSeconds(1));
+    String second = triage(patientBody("RED"));
+    perform(patch("/triage/" + first + "/recall"), nurse)
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("INVALID_TRIAGE_STATUS"));
+
+    clock.advance(Duration.ofSeconds(1));
+    perform(patch("/triage/" + first + "/call"), nurse).andExpect(jsonPath("$.callCount").value(1));
+    clock.advance(Duration.ofSeconds(1));
+    perform(patch("/triage/" + second + "/call"), nurse).andExpect(status().isOk());
+    clock.advance(Duration.ofSeconds(1));
+    perform(patch("/triage/" + first + "/recall"), reception).andExpect(status().isForbidden());
+    perform(patch("/triage/" + first + "/recall"), nurse)
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.callCount").value(2));
+
+    var body =
+        perform(get("/triage/calls"), reception)
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.recent[0].id").value(first))
+            .andExpect(jsonPath("$.recent[0].callCount").value(2))
+            .andExpect(jsonPath("$.recent[1].id").value(second))
+            .andExpect(jsonPath("$.recent[1].priority").value("RED"))
+            .andExpect(jsonPath("$.waiting").isEmpty())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    // Ecrã público: sem nomes nem queixas.
+    assertThat(body).doesNotContain("Sigiloso", "Ana Silva", "Dor abdominal");
+  }
+
+  @Test
   void vitalsAreValidated() throws Exception {
     perform(
             json(

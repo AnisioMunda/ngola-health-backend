@@ -1,5 +1,6 @@
 package com.ngolahealth.backend.modules.triage.api;
 
+import com.ngolahealth.backend.modules.triage.api.TriageDtos.CallBoard;
 import com.ngolahealth.backend.modules.triage.api.TriageDtos.ChangePriorityRequest;
 import com.ngolahealth.backend.modules.triage.api.TriageDtos.CreateTriageRequest;
 import com.ngolahealth.backend.modules.triage.api.TriageDtos.IdentifyRequest;
@@ -40,6 +41,13 @@ public class TriageController {
   @Operation(summary = "Fila activa: em espera (por prioridade e chegada) e em atendimento")
   public List<TriageResponse> queue() {
     return service.activeQueue();
+  }
+
+  @GetMapping("/calls")
+  @PreAuthorize(Authorities.PATIENT_READERS)
+  @Operation(summary = "Ecrã de chamadas: últimas senhas chamadas e senhas em espera (sem nomes)")
+  public CallBoard calls() {
+    return service.callBoard();
   }
 
   @GetMapping("/stats")
@@ -97,6 +105,13 @@ public class TriageController {
   @Operation(summary = "Chamar doente (em espera → em atendimento)")
   public TriageResponse call(@PathVariable UUID id) {
     return service.call(id);
+  }
+
+  @PatchMapping("/{id}/recall")
+  @PreAuthorize(Authorities.TRIAGE_STAFF)
+  @Operation(summary = "Chamar de novo (doente em atendimento que não respondeu)")
+  public TriageResponse recall(@PathVariable UUID id) {
+    return service.recall(id);
   }
 
   @PostMapping("/{id}/episode")

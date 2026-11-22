@@ -15,12 +15,15 @@ import com.ngolahealth.backend.modules.episodes.application.EpisodeService;
 import com.ngolahealth.backend.modules.episodes.domain.EpisodeType;
 import com.ngolahealth.backend.modules.patients.application.PatientDirectory;
 import com.ngolahealth.backend.modules.patients.application.PatientDirectory.PatientRef;
+import com.ngolahealth.backend.modules.triage.api.TriageDtos.CallBoard;
+import com.ngolahealth.backend.modules.triage.api.TriageDtos.CalledTicket;
 import com.ngolahealth.backend.modules.triage.api.TriageDtos.ChangePriorityRequest;
 import com.ngolahealth.backend.modules.triage.api.TriageDtos.CreateTriageRequest;
 import com.ngolahealth.backend.modules.triage.api.TriageDtos.PriorityChangeView;
 import com.ngolahealth.backend.modules.triage.api.TriageDtos.TriageResponse;
 import com.ngolahealth.backend.modules.triage.api.TriageDtos.TriageStats;
 import com.ngolahealth.backend.modules.triage.api.TriageDtos.VitalsView;
+import com.ngolahealth.backend.modules.triage.api.TriageDtos.WaitingTicket;
 import com.ngolahealth.backend.modules.triage.domain.PriorityChange;
 import com.ngolahealth.backend.modules.triage.domain.PriorityChangeRepository;
 import com.ngolahealth.backend.modules.triage.domain.TriagePriority;
@@ -45,6 +48,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,6 +64,9 @@ public class TriageService {
       Comparator.comparing((TriageRecord t) -> t.getStatus() != TriageStatus.WAITING)
           .thenComparing(TriageRecord::getPriority)
           .thenComparing(TriageRecord::getTriagedAt);
+
+  /** Quantas chamadas recentes o ecrã mostra. */
+  private static final int RECENT_CALLS = 8;
 
   private final TriageRepository triages;
   private final PriorityChangeRepository priorityChanges;
@@ -81,6 +88,32 @@ public class TriageService {
             .sorted(QUEUE_ORDER)
             .toList();
     return toResponses(records);
+  }
+
+  /**
+   * Ecrã de chamadas: últimas senhas chamadas hoje e as que esperam (por prioridade e chegada).
+   * Consultado a cada poucos segundos, por isso não fica na auditoria e não lê nomes.
+   */
+  @Transactional(readOnly = true)
+  public CallBoard callBoard() {
+    requireHospitalUser();
+    var recent =
+        triages.findRecentCalls(today(), PageRequest.of(0, RECENT_CALLS)).stream()
+            .map(
+                t ->
+                    new CalledTicket(
+                        t.getId(),
+                        t.getQueueNumber(),
+                        t.getPriority(),
+                        t.getLastCalledAt(),
+                        t.getCallCount()))
+            .toList();
+    var waiting =
+        triages.findByStatusIn(List.of(TriageStatus.WAITING)).stream()
+            .sorted(QUEUE_ORDER)
+            .map(t -> new WaitingTicket(t.getQueueNumber(), t.getPriority()))
+            .toList();
+    return new CallBoard(clock.instant(), recent, waiting);
   }
 
   @Transactional(readOnly = true)
@@ -231,6 +264,15 @@ public class TriageService {
     var record = load(id);
     record.call(user.id(), clock.instant());
     return saveWithEvent(record, AuditAction.START, "Doente chamado: ");
+  }
+
+  /** Chama de novo um doente que não respondeu; o ecrã de chamadas volta a anunciar a senha. */
+  @Transactional
+  public TriageResponse recall(UUID id) {
+    requireHospitalUser();
+    var record = load(id);
+    record.recall(clock.instant());
+    return saveWithEvent(record, AuditAction.UPDATE, "Doente chamado de novo: ");
   }
 
   /** Conclui a triagem sem episódio (ex.: orientado para fora do hospital). */
@@ -393,6 +435,8 @@ public class TriageService {
         nameOf(names, t.getTriagedBy()),
         t.getCalledAt(),
         nameOf(names, t.getCalledBy()),
+        t.getCallCount(),
+        t.getLastCalledAt(),
         t.getClosedAt(),
         nameOf(names, t.getClosedBy()),
         t.getEpisodeId(),

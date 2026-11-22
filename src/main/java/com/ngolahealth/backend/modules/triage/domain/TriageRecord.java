@@ -91,6 +91,13 @@ public class TriageRecord extends HospitalScopedEntity {
   @Column(name = "called_by", length = 36)
   private UUID calledBy;
 
+  /** Quantas vezes a senha foi chamada (0 = ainda não; mais de 1 = chamada de novo). */
+  @Column(name = "call_count", nullable = false)
+  private int callCount;
+
+  @Column(name = "last_called_at")
+  private Instant lastCalledAt;
+
   @Column(name = "closed_at")
   private Instant closedAt;
 
@@ -173,6 +180,17 @@ public class TriageRecord extends HospitalScopedEntity {
     this.status = TriageStatus.IN_PROGRESS;
     this.calledAt = at;
     this.calledBy = by;
+    this.callCount = 1;
+    this.lastCalledAt = at;
+  }
+
+  /** Volta a chamar a senha (o doente não respondeu): aparece de novo no ecrã de chamadas. */
+  public void recall(Instant at) {
+    requireStatus(
+        TriageStatus.IN_PROGRESS,
+        "Só um doente já chamado (em atendimento) pode ser chamado de novo.");
+    this.callCount++;
+    this.lastCalledAt = at;
   }
 
   public void complete(UUID episodeId, UUID by, Instant at) {

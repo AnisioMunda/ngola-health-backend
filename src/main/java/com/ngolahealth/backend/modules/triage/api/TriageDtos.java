@@ -95,6 +95,8 @@ public final class TriageDtos {
       String triagedByName,
       Instant calledAt,
       String calledByName,
+      int callCount,
+      Instant lastCalledAt,
       Instant closedAt,
       String closedByName,
       UUID episodeId,
@@ -103,6 +105,19 @@ public final class TriageDtos {
       boolean overdue,
       List<PriorityChangeView> priorityChanges,
       long version) {}
+
+  /**
+   * Ecrã de chamadas (sala de espera): só senhas e prioridades, nunca nomes nem queixas, porque o
+   * ecrã fica à vista do público.
+   */
+  public record CallBoard(
+      Instant serverTime, List<CalledTicket> recent, List<WaitingTicket> waiting) {}
+
+  /** Uma chamada: {@code callCount} muda quando a senha é chamada de novo. */
+  public record CalledTicket(
+      UUID id, int queueNumber, TriagePriority priority, Instant calledAt, int callCount) {}
+
+  public record WaitingTicket(int queueNumber, TriagePriority priority) {}
 
   /** Indicadores do dia (hora local). */
   public record TriageStats(

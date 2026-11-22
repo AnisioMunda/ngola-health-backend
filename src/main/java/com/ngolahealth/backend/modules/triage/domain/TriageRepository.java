@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -24,4 +25,10 @@ public interface TriageRepository extends JpaRepository<TriageRecord, UUID> {
 
   @Query("SELECT t FROM TriageRecord t WHERE t.patientId = :patientId ORDER BY t.triagedAt DESC")
   List<TriageRecord> findByPatient(@Param("patientId") UUID patientId);
+
+  /** Últimas chamadas de um dia, da mais recente para a mais antiga (ecrã de chamadas). */
+  @Query(
+      "SELECT t FROM TriageRecord t WHERE t.queueDate = :day AND t.lastCalledAt IS NOT NULL"
+          + " ORDER BY t.lastCalledAt DESC")
+  List<TriageRecord> findRecentCalls(@Param("day") LocalDate day, Pageable page);
 }
