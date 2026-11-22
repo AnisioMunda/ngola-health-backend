@@ -107,17 +107,22 @@ public final class TriageDtos {
       long version) {}
 
   /**
-   * Ecrã de chamadas (sala de espera): só senhas e prioridades, nunca nomes nem queixas, porque o
-   * ecrã fica à vista do público.
+   * Ecrã de chamadas (sala de espera). À vista do público: senha, prioridade e nome (para o doente
+   * se reconhecer); nunca queixas nem dados clínicos.
    */
   public record CallBoard(
       Instant serverTime, List<CalledTicket> recent, List<WaitingTicket> waiting) {}
 
   /** Uma chamada: {@code callCount} muda quando a senha é chamada de novo. */
   public record CalledTicket(
-      UUID id, int queueNumber, TriagePriority priority, Instant calledAt, int callCount) {}
+      UUID id,
+      int queueNumber,
+      TriagePriority priority,
+      String patientName,
+      Instant calledAt,
+      int callCount) {}
 
-  public record WaitingTicket(int queueNumber, TriagePriority priority) {}
+  public record WaitingTicket(int queueNumber, TriagePriority priority, String patientName) {}
 
   /** Indicadores do dia (hora local). */
   public record TriageStats(

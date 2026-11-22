@@ -91,27 +91,39 @@ public class TriageService {
   }
 
   /**
-   * Ecrã de chamadas: últimas senhas chamadas hoje e as que esperam (por prioridade e chegada).
-   * Consultado a cada poucos segundos, por isso não fica na auditoria e não lê nomes.
+   * Ecrã de chamadas: últimas senhas chamadas hoje e as que esperam, com o nome para o doente se
+   * reconhecer. Consultado a cada poucos segundos, por isso não fica na auditoria.
    */
   @Transactional(readOnly = true)
   public CallBoard callBoard() {
     requireHospitalUser();
+    var calls = triages.findRecentCalls(today(), PageRequest.of(0, RECENT_CALLS));
+    var queued =
+        triages.findByStatusIn(List.of(TriageStatus.WAITING)).stream().sorted(QUEUE_ORDER).toList();
+    var patientRefs =
+        patients.findAll(
+            Stream.concat(calls.stream(), queued.stream())
+                .map(TriageRecord::getPatientId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
     var recent =
-        triages.findRecentCalls(today(), PageRequest.of(0, RECENT_CALLS)).stream()
+        calls.stream()
             .map(
                 t ->
                     new CalledTicket(
                         t.getId(),
                         t.getQueueNumber(),
                         t.getPriority(),
+                        nameFor(t, patientRefs),
                         t.getLastCalledAt(),
                         t.getCallCount()))
             .toList();
     var waiting =
-        triages.findByStatusIn(List.of(TriageStatus.WAITING)).stream()
-            .sorted(QUEUE_ORDER)
-            .map(t -> new WaitingTicket(t.getQueueNumber(), t.getPriority()))
+        queued.stream()
+            .map(
+                t ->
+                    new WaitingTicket(t.getQueueNumber(), t.getPriority(), nameFor(t, patientRefs)))
             .toList();
     return new CallBoard(clock.instant(), recent, waiting);
   }
@@ -455,6 +467,12 @@ public class TriageService {
                 .filter(Objects::nonNull)
                 .forEach(ids::add));
     return ids;
+  }
+
+  /** Nome do paciente registado, ou o nome provisório. */
+  private static String nameFor(TriageRecord t, Map<UUID, PatientRef> patientRefs) {
+    var patient = t.getPatientId() == null ? null : patientRefs.get(t.getPatientId());
+    return patient != null ? patient.fullName() : t.getTempName();
   }
 
   private static String nameOf(Map<UUID, String> names, UUID id) {

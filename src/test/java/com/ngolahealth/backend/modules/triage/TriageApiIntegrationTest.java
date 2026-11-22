@@ -208,10 +208,11 @@ class TriageApiIntegrationTest {
   }
 
   @Test
-  void callBoardShowsOnlyTicketsAndRecallsAnnounceAgain() throws Exception {
+  void callBoardShowsTicketsWithNamesAndRecallsAnnounceAgain() throws Exception {
     String first = triage(tempBody("GREEN", "Doente Sigiloso"));
     clock.advance(Duration.ofSeconds(1));
     String second = triage(patientBody("RED"));
+    triage(tempBody("BLUE", "Ainda Em Espera"));
     perform(patch("/triage/" + first + "/recall"), nurse)
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value("INVALID_TRIAGE_STATUS"));
@@ -231,14 +232,17 @@ class TriageApiIntegrationTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.recent[0].id").value(first))
             .andExpect(jsonPath("$.recent[0].callCount").value(2))
+            .andExpect(jsonPath("$.recent[0].patientName").value("Doente Sigiloso"))
             .andExpect(jsonPath("$.recent[1].id").value(second))
             .andExpect(jsonPath("$.recent[1].priority").value("RED"))
-            .andExpect(jsonPath("$.waiting").isEmpty())
+            .andExpect(jsonPath("$.recent[1].patientName").value("Ana Silva"))
+            .andExpect(jsonPath("$.waiting[0].priority").value("BLUE"))
+            .andExpect(jsonPath("$.waiting[0].patientName").value("Ainda Em Espera"))
             .andReturn()
             .getResponse()
             .getContentAsString();
-    // Ecrã público: sem nomes nem queixas.
-    assertThat(body).doesNotContain("Sigiloso", "Ana Silva", "Dor abdominal");
+    // Ecrã público: nunca queixas nem dados clínicos.
+    assertThat(body).doesNotContain("Dor abdominal", "systolicBp", "notes");
   }
 
   @Test
